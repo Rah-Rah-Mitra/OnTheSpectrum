@@ -1,12 +1,12 @@
 {
-  "asset": "Artomata Painter Chibi",
-  "slug": "artomata-painter-chibi",
+  "asset": "OnTheSpectrum Painter Chibi",
+  "slug": "on_the_spectrum-painter-chibi",
   "generator": "add_mixamo_exports_and_animations.py",
   "paths": {
-    "blend": "public/models/artomata-painter-chibi.blend",
-    "glb": "public/models/artomata-painter-chibi.glb",
-    "preview": "public/renders/artomata-painter-chibi-preview.png",
-    "metadata": "public/models/artomata-painter-chibi.metadata.json"
+    "blend": "public/models/on_the_spectrum-painter-chibi.blend",
+    "glb": "public/models/on_the_spectrum-painter-chibi.glb",
+    "preview": "public/renders/on_the_spectrum-painter-chibi-preview.png",
+    "metadata": "public/models/on_the_spectrum-painter-chibi.metadata.json"
   },
   "counts": {
     "objects": 52,
@@ -90,7 +90,7 @@
   ],
   "armature": {
     "objects": [
-      "RIG_ArtomataPainter_BasicArmature"
+      "RIG_OnTheSpectrumPainter_BasicArmature"
     ],
     "bones": [
       "foot.L",
@@ -115,7 +115,7 @@
     ]
   },
   "exports": {
-    "mixamo_fbx": "public/exports/artomata-painter-chibi/artomata-painter-chibi-mixamo.fbx",
-    "mixamo_obj_zip": "public/exports/artomata-painter-chibi/artomata-painter-chibi-mixamo-obj.zip"
+    "mixamo_fbx": "public/exports/on_the_spectrum-painter-chibi/on_the_spectrum-painter-chibi-mixamo.fbx",
+    "mixamo_obj_zip": "public/exports/on_the_spectrum-painter-chibi/on_the_spectrum-painter-chibi-mixamo-obj.zip"
   }
 }

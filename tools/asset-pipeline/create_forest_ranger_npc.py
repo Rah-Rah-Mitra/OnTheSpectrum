@@ -2,7 +2,7 @@
 
 The script is repeatable: it creates the source scene, embeds web animation
 clips, exports the GLB, writes Mixamo best-effort exports, renders a preview,
-and writes metadata using the existing Artomata asset-pipeline conventions.
+and writes metadata using the existing OnTheSpectrum asset-pipeline conventions.
 """
 
 from __future__ import annotations

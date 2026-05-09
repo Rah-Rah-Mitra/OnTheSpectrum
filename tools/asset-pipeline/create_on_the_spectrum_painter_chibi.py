@@ -1,4 +1,4 @@
-"""Generate the Artomata Painter Chibi asset in Blender.
+"""Generate the OnTheSpectrum Painter Chibi asset in Blender.
 
 Run from Blender Python, either through the live Blender MCP bridge or a
 background Blender process with BLENDER_PATH configured.
@@ -36,8 +36,8 @@ from blender_common import (  # noqa: E402
     write_json,
 )
 
-ASSET_SLUG = "artomata-painter-chibi"
-ASSET_NAME = "Artomata Painter Chibi"
+ASSET_SLUG = "on_the_spectrum-painter-chibi"
+ASSET_NAME = "OnTheSpectrum Painter Chibi"
 
 
 def repo_root() -> Path:
@@ -101,8 +101,8 @@ def bind_to_bone(obj: bpy.types.Object, armature: bpy.types.Object, bone_name: s
 def create_armature() -> bpy.types.Object:
     bpy.ops.object.armature_add(enter_editmode=True, location=(0, 0, 0))
     armature = bpy.context.object
-    armature.name = "RIG_ArtomataPainter_BasicArmature"
-    armature.data.name = "ARM_ArtomataPainter_Chibi"
+    armature.name = "RIG_OnTheSpectrumPainter_BasicArmature"
+    armature.data.name = "ARM_OnTheSpectrumPainter_Chibi"
     armature.show_in_front = True
     link_collection = collection("RIG")
     for source in list(armature.users_collection):
@@ -230,8 +230,8 @@ def setup_lighting_and_camera() -> None:
     bpy.context.scene.world = world
     world.color = (0.025, 0.032, 0.035)
 
-    camera_data = bpy.data.cameras.new("CAM_ArtomataPainter_Preview")
-    camera = bpy.data.objects.new("CAM_ArtomataPainter_Preview", camera_data)
+    camera_data = bpy.data.cameras.new("CAM_OnTheSpectrumPainter_Preview")
+    camera = bpy.data.objects.new("CAM_OnTheSpectrumPainter_Preview", camera_data)
     bpy.context.scene.collection.objects.link(camera)
     camera.location = (2.2, -5.2, 2.25)
     camera.data.lens = 62
@@ -265,7 +265,7 @@ def setup_lighting_and_camera() -> None:
 
 def configure_scene() -> None:
     scene = bpy.context.scene
-    scene.name = "SCN_ArtomataPainterChibi"
+    scene.name = "SCN_OnTheSpectrumPainterChibi"
     scene.unit_settings.system = "METRIC"
     scene.render.resolution_x = 1600
     scene.render.resolution_y = 1600

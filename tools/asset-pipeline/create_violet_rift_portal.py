@@ -3,7 +3,7 @@
 Run from Blender Python through the live MCP bridge when available, or through
 background Blender via run_blender_asset.py when BLENDER_PATH is configured.
 The script is repeatable: it creates the source scene, exports an animated GLB,
-renders a preview, and writes metadata for the Artomata viewer.
+renders a preview, and writes metadata for the OnTheSpectrum viewer.
 """
 
 from __future__ import annotations

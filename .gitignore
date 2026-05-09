@@ -8,6 +8,7 @@ dist-ssr/
 # Tool caches and coverage
 .vite/
 .cache/
+.npm-cache/
 coverage/
 __pycache__/
 

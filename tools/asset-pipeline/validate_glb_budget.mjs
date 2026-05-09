@@ -2,7 +2,7 @@ import { inspectGlb } from "./inspect_glb.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
-const target = process.argv[2] || "public/models/artomata-painter-chibi.glb";
+const target = process.argv[2] || "public/models/on_the_spectrum-painter-chibi.glb";
 const info = inspectGlb(target);
 const warnings = [];
 

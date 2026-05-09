@@ -1,4 +1,4 @@
-"""Reusable Artomata asset family pipelines."""
+"""Reusable OnTheSpectrum asset family pipelines."""
 
 from __future__ import annotations
 
@@ -18,5 +18,5 @@ def run_asset_pipeline(spec: dict) -> dict:
     pipeline_id = spec.get("pipelineId")
     module = PIPELINE_MODULES.get(pipeline_id)
     if module is None:
-        raise ValueError(f"Unsupported Artomata pipelineId: {pipeline_id}")
+        raise ValueError(f"Unsupported OnTheSpectrum pipelineId: {pipeline_id}")
     return module.generate(spec)

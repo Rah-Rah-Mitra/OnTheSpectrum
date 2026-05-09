@@ -68,7 +68,7 @@ def regenerate_toon_blaster_runner() -> dict[str, str]:
 
 def main() -> dict[str, dict[str, str]]:
     return {
-        "artomata-painter-chibi": regenerate_chibi(),
+        "on_the_spectrum-painter-chibi": regenerate_chibi(),
         "toon-blaster-runner": regenerate_toon_blaster_runner(),
     }
 

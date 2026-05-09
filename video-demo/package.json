@@ -1,0 +1,27 @@
+{
+  "name": "onthe-spectrum-video-demo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.jsx",
+    "capture": "node scripts/capture-app.mjs",
+    "voiceover": "node scripts/generate-voiceover.mjs",
+    "render": "remotion render src/index.jsx OnTheSpectrumFullDemo out/onthe-spectrum-full-demo.mp4 --codec=h264 --audio-codec=aac",
+    "render:fast": "remotion render src/index.jsx OnTheSpectrumFullDemo out/onthe-spectrum-full-demo-preview.mp4 --codec=h264 --audio-codec=aac --scale=0.5",
+    "still:generator": "remotion still src/index.jsx OnTheSpectrumFullDemo out/stills/generator.png --frame=420 --scale=0.35",
+    "still:handoff": "remotion still src/index.jsx OnTheSpectrumFullDemo out/stills/agent-handoff-generate.png --frame=3180 --scale=0.35",
+    "still:world3d": "remotion still src/index.jsx OnTheSpectrumFullDemo out/stills/world-3d.png --frame=3420 --scale=0.35"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.379",
+    "@remotion/media": "^4.0.379",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "remotion": "^4.0.379"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.52.0"
+  }
+}

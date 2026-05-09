@@ -1,4 +1,4 @@
-"""Shared Blender helpers for generated Artomata asset pipelines."""
+"""Shared Blender helpers for generated OnTheSpectrum asset pipelines."""
 
 from __future__ import annotations
 
@@ -432,7 +432,7 @@ def collect_metadata(
             "export_yup": True,
             "applied_export_transforms": True,
             "animations": bool(spec.get("animationClips")),
-            "source": "Artomata generated Blender pipeline",
+            "source": "OnTheSpectrum generated Blender pipeline",
         },
         "notes": notes,
     }

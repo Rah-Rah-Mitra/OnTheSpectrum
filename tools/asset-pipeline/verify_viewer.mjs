@@ -192,9 +192,9 @@ async function connectCdp(wsUrl) {
 }
 
 async function main() {
-  const qaDir = path.join(os.tmpdir(), "artomata-viewer-qa");
+  const qaDir = path.join(os.tmpdir(), "on_the_spectrum-viewer-qa");
   await fs.mkdir(qaDir, { recursive: true });
-  const userDataDir = path.join(os.tmpdir(), `artomata-chrome-${Date.now()}`);
+  const userDataDir = path.join(os.tmpdir(), `on_the_spectrum-chrome-${Date.now()}`);
   const chrome = spawn(chromePath, [
     "--headless=new",
     "--disable-gpu",
@@ -257,7 +257,7 @@ async function main() {
   const desktopReady = await waitForAsset("Painter Chibi", "30,724");
   const chibiCanvasDataLength = await canvasDataLength();
   const initialShot = await cdp.send("Page.captureScreenshot", { format: "png", fromSurface: true });
-  const desktopPath = path.join(qaDir, "artomata-assets-desktop.png");
+  const desktopPath = path.join(qaDir, "on_the_spectrum-assets-desktop.png");
   await fs.writeFile(desktopPath, Buffer.from(initialShot.data, "base64"));
 
   await evaluate(`document.querySelector('[aria-label="Play spin"]')?.click();`);
@@ -411,7 +411,7 @@ async function main() {
     selectedPortal: ${mobilePortalSelected},
   })`);
   const mobileShot = await cdp.send("Page.captureScreenshot", { format: "png", fromSurface: true });
-  const mobilePath = path.join(qaDir, "artomata-assets-mobile.png");
+  const mobilePath = path.join(qaDir, "on_the_spectrum-assets-mobile.png");
   await fs.writeFile(mobilePath, Buffer.from(mobileShot.data, "base64"));
 
   const consoleIssues = cdp.events
@@ -453,7 +453,7 @@ async function main() {
     consoleIssues: relevantConsoleIssues,
     screenshots: [desktopPath, mobilePath],
     checks: {
-      pageIdentity: (await evaluate("document.title")) === "Artomata Asset Viewer",
+      pageIdentity: (await evaluate("document.title")) === "OnTheSpectrum Asset Viewer",
       notBlank:
         Boolean(
           desktopReady.ready &&
@@ -491,15 +491,15 @@ async function main() {
         chibiState.walkActive &&
         chibiState.statusText.includes("Walk clip"),
       chibiExportLinks:
-        chibiState.exports["Download Web GLB"]?.href === "/models/artomata-painter-chibi.glb" &&
-        chibiState.exports["Download Web GLB"]?.download === "artomata-painter-chibi.glb" &&
+        chibiState.exports["Download Web GLB"]?.href === "/models/on_the_spectrum-painter-chibi.glb" &&
+        chibiState.exports["Download Web GLB"]?.download === "on_the_spectrum-painter-chibi.glb" &&
         chibiState.exports["Download Mixamo FBX"]?.href ===
-          "/exports/artomata-painter-chibi/artomata-painter-chibi-mixamo.fbx" &&
-        chibiState.exports["Download Mixamo FBX"]?.download === "artomata-painter-chibi-mixamo.fbx" &&
+          "/exports/on_the_spectrum-painter-chibi/on_the_spectrum-painter-chibi-mixamo.fbx" &&
+        chibiState.exports["Download Mixamo FBX"]?.download === "on_the_spectrum-painter-chibi-mixamo.fbx" &&
         chibiState.exports["Download OBJ ZIP"]?.href ===
-          "/exports/artomata-painter-chibi/artomata-painter-chibi-mixamo-obj.zip" &&
-        chibiState.exports["Download OBJ ZIP"]?.download === "artomata-painter-chibi-mixamo-obj.zip" &&
-        chibiState.exports["Download Blender source"]?.href === "/models/artomata-painter-chibi.blend",
+          "/exports/on_the_spectrum-painter-chibi/on_the_spectrum-painter-chibi-mixamo-obj.zip" &&
+        chibiState.exports["Download OBJ ZIP"]?.download === "on_the_spectrum-painter-chibi-mixamo-obj.zip" &&
+        chibiState.exports["Download Blender source"]?.href === "/models/on_the_spectrum-painter-chibi.blend",
       blasterSelection:
         blasterState.selected &&
         blasterState.idleInitiallyActive &&

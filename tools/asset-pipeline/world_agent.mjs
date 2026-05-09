@@ -1,6 +1,6 @@
 import { getOpenAISettings, loadDotEnv } from "./asset_agent.mjs";
 
-const worldSchemaVersion = "artomata.world-grid.v2";
+const worldSchemaVersion = "on_the_spectrum.world-grid.v2";
 const worldThemes = ["studio-atrium", "toon-lab", "garden-room", "training-floor"];
 const structureLayer = "structure";
 const occupantLayer = "occupant";
@@ -223,7 +223,7 @@ async function generateWorld({ prompt = "", currentWorld = {} } = {}) {
       {
         role: "system",
         content:
-          "You create one Artomata world-grid JSON document from a prompt. Use only the supplied palette itemIds. Structures must use type structure and layer structure; assets must use type asset and layer occupant. Keep x/y integer coordinates inside the grid. Use at most one structure and one occupant per cell. When placing a playable character on a spawn tile, set combat.role to player. Do not create linked multi-world output; always set targetWorldId to null. Return concise tags and notes that explain layout intent.",
+          "You create one OnTheSpectrum world-grid JSON document from a prompt. Use only the supplied palette itemIds. Structures must use type structure and layer structure; assets must use type asset and layer occupant. Keep x/y integer coordinates inside the grid. Use at most one structure and one occupant per cell. When placing a playable character on a spawn tile, set combat.role to player. Do not create linked multi-world output; always set targetWorldId to null. Return concise tags and notes that explain layout intent.",
       },
       {
         role: "user",
@@ -233,7 +233,7 @@ async function generateWorld({ prompt = "", currentWorld = {} } = {}) {
     text: {
       format: {
         type: "json_schema",
-        name: "artomata_world_grid",
+        name: "on_the_spectrum_world_grid",
         strict: true,
         schema: worldGridJsonSchema(palette),
       },

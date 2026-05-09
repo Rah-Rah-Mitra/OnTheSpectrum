@@ -4,7 +4,7 @@
   "pipelineId": "prop.static_or_turntable",
   "name": "Codex Smoke Beacon Prop",
   "subject": "A compact stylized test beacon prop for validating one-click generation",
-  "visualStyle": "Stylized Artomata procedural asset with readable silhouette and polished materials",
+  "visualStyle": "Stylized OnTheSpectrum procedural asset with readable silhouette and polished materials",
   "requiredParts": [
     "round primary core",
     "equator band",

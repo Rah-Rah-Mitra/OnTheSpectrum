@@ -85,7 +85,7 @@ function buildBriefFromForm(form = {}) {
     `Type: ${family === "vfx" ? "VFX" : family}`,
     family === "vfx" ? `VFX family: ${text(form.vfxFamily, "custom")}` : null,
     `Name: ${name}`,
-    `Style: ${text(form.style, "Stylized Artomata procedural asset")}`,
+    `Style: ${text(form.style, "Stylized OnTheSpectrum procedural asset")}`,
     `Required parts: ${listText(form.requiredParts, ["primary silhouette", "detail accents", "display base"])}`,
     `Materials/colors: ${listText(form.materials, ["matte primary color", "secondary accent", "soft contact shadow"])}`,
     `Rigging: ${family === "vfx" ? "simple transform rig" : text(form.rigging, "none")}`,

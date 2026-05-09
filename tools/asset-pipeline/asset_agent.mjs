@@ -108,7 +108,7 @@ function normalizeSpec(rawSpec, sourceBrief = "") {
     pipelineId,
     name,
     subject: String(rawSpec.subject || name).trim(),
-    visualStyle: String(rawSpec.visualStyle || rawSpec.style || "Stylized Artomata procedural asset").trim(),
+    visualStyle: String(rawSpec.visualStyle || rawSpec.style || "Stylized OnTheSpectrum procedural asset").trim(),
     requiredParts,
     materialPalette,
     rigTarget,
@@ -176,7 +176,7 @@ async function specFromOpenAI({ brief, family }) {
       {
         role: "system",
         content:
-          "You normalize Artomata Blender asset briefs into one strict AssetSpec. Select only an allowed pipelineId. Do not invent file paths. Keep budgets at or below warning limits unless explicitly approved.",
+          "You normalize OnTheSpectrum Blender asset briefs into one strict AssetSpec. Select only an allowed pipelineId. Do not invent file paths. Keep budgets at or below warning limits unless explicitly approved.",
       },
       {
         role: "user",
@@ -186,7 +186,7 @@ async function specFromOpenAI({ brief, family }) {
     text: {
       format: {
         type: "json_schema",
-        name: "artomata_asset_spec",
+        name: "on_the_spectrum_asset_spec",
         strict: true,
         schema: assetSpecJsonSchema,
       },
@@ -221,7 +221,7 @@ function writeSpecAndGenerator(spec) {
   const generatorPath = path.join(repoRoot, "tools", "asset-pipeline", `create_${spec.slug.replace(/-/g, "_")}.py`);
   const specJson = JSON.stringify(spec, null, 2);
   const pythonJsonLiteral = JSON.stringify(specJson);
-  const script = `"""Generated Artomata asset generator for ${spec.name}.
+  const script = `"""Generated OnTheSpectrum asset generator for ${spec.name}.
 
 This file is intentionally thin: the embedded AssetSpec selects a reusable
 pipeline under tools/asset-pipeline/pipelines/.
@@ -389,7 +389,7 @@ function registryEntryFromMetadata(spec, validation) {
     downloadName: `${spec.slug}.glb`,
     blendDownloadName: `${spec.slug}.blend`,
     snapshotName: `${spec.slug}-snapshot.png`,
-    sourceLabel: "Artomata asset agent",
+    sourceLabel: "OnTheSpectrum asset agent",
     defaultAnimation: metadata.animations?.default ?? clips[0]?.name ?? "",
     animationClips: clips,
     exports,

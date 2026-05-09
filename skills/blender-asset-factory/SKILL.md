@@ -32,7 +32,7 @@ Use Blender as the source of truth. Build the real asset in Blender first, save 
 ## Repo Helpers
 
 - `tools/asset-pipeline/blender_common.py`: shared Blender geometry, material, export, and metadata helpers.
-- `tools/asset-pipeline/create_artomata_painter_chibi.py`: reference character generator.
+- `tools/asset-pipeline/create_on_the_spectrum_painter_chibi.py`: reference character generator.
 - `tools/asset-pipeline/run_blender_asset.py`: background Blender runner for non-MCP use.
 - `tools/asset-pipeline/inspect_glb.mjs`: GLB metadata inspection.
 - `tools/asset-pipeline/validate_glb_budget.mjs`: web budget validation.

@@ -1,0 +1,31 @@
+{
+  "generated": true,
+  "generatedAt": "2026-05-09T08:28:54.991Z",
+  "appUrl": "http://127.0.0.1:5173",
+  "captures": {
+    "generator": {
+      "src": "captures/generator.png"
+    },
+    "viewer": {
+      "src": "captures/viewer.png"
+    },
+    "world-grid": {
+      "src": "captures/world-grid.png"
+    },
+    "agent-handoff-json": {
+      "src": "captures/agent-handoff-json.png"
+    },
+    "agent-handoff-brief": {
+      "src": "captures/agent-handoff-brief.png"
+    },
+    "agent-handoff-generate": {
+      "src": "captures/agent-handoff-generate.png"
+    },
+    "world-switch": {
+      "src": "captures/world-switch.png"
+    },
+    "world-3d": {
+      "src": "captures/world-3d.png"
+    }
+  }
+}

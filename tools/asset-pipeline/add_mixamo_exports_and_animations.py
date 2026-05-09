@@ -19,7 +19,7 @@ from mathutils import Vector
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 
-CHIBI_SLUG = "artomata-painter-chibi"
+CHIBI_SLUG = "on_the_spectrum-painter-chibi"
 FLOWER_SLUG = "flower"
 CHIBI_CLIPS = ("Idle_Stationary", "Walk_InPlace")
 FLOWER_CLIPS = ("Sway_Gentle",)
@@ -532,9 +532,9 @@ def process_chibi() -> dict:
     bpy.ops.wm.open_mainfile(filepath=str(paths["blend"]))
     armatures = armature_objects()
     if not armatures:
-        raise RuntimeError("Artomata Painter Chibi blend does not contain an armature.")
+        raise RuntimeError("OnTheSpectrum Painter Chibi blend does not contain an armature.")
 
-    armature = bpy.data.objects.get("RIG_ArtomataPainter_BasicArmature") or armatures[0]
+    armature = bpy.data.objects.get("RIG_OnTheSpectrumPainter_BasicArmature") or armatures[0]
     add_chibi_actions(armature)
     bpy.ops.wm.save_as_mainfile(filepath=str(paths["blend"]))
     export_glb(paths["glb"], armature_objects() + mesh_objects())
@@ -544,7 +544,7 @@ def process_chibi() -> dict:
 
     metadata = collect_metadata(
         CHIBI_SLUG,
-        "Artomata Painter Chibi",
+        "OnTheSpectrum Painter Chibi",
         {
             "mixamo_fbx": paths["mixamo_fbx"],
             "mixamo_obj_zip": paths["mixamo_obj_zip"],

@@ -14,7 +14,7 @@ from pathlib import Path
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--script", default="tools/asset-pipeline/create_artomata_painter_chibi.py")
+    parser.add_argument("--script", default="tools/asset-pipeline/create_on_the_spectrum_painter_chibi.py")
     parser.add_argument("--blend-file", default="")
     args = parser.parse_args()
 

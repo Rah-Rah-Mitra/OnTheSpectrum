@@ -83,7 +83,7 @@ export async function probeBlenderMcp(options) {
 }
 
 export async function runGeneratorViaMcp(generatorPath, repoRoot, options) {
-  const moduleName = `artomata_generated_${path.basename(generatorPath).replace(/[^A-Za-z0-9_]/g, "_")}`;
+  const moduleName = `on_the_spectrum_generated_${path.basename(generatorPath).replace(/[^A-Za-z0-9_]/g, "_")}`;
   const code = `
 import importlib.util
 import json

@@ -1,15 +1,15 @@
-# Artomata Painter Chibi
+# OnTheSpectrum Painter Chibi
 
 ## Brief
 
-Create an original anime chibi studio mascot for Artomata. The character is a small painter/maker companion with a large rounded head, expressive eyes, ink-violet hair with a cyan streak, teal jacket, ivory apron, coral trim, satchel, boots, stylus-brush prop, and a compact display base.
+Create an original anime chibi studio mascot for OnTheSpectrum. The character is a small painter/maker companion with a large rounded head, expressive eyes, ink-violet hair with a cyan streak, teal jacket, ivory apron, coral trim, satchel, boots, stylus-brush prop, and a compact display base.
 
 ## Required Outputs
 
-- `public/models/artomata-painter-chibi.blend`
-- `public/models/artomata-painter-chibi.glb`
-- `public/models/artomata-painter-chibi.metadata.json`
-- `public/renders/artomata-painter-chibi-preview.png`
+- `public/models/on_the_spectrum-painter-chibi.blend`
+- `public/models/on_the_spectrum-painter-chibi.glb`
+- `public/models/on_the_spectrum-painter-chibi.metadata.json`
+- `public/renders/on_the_spectrum-painter-chibi-preview.png`
 
 ## Rig Target
 

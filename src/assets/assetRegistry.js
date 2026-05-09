@@ -2,17 +2,17 @@ import generatedAssetRegistry from "./generatedAssetRegistry.json";
 
 const builtInAssetRegistry = [
   {
-    id: "artomata-painter-chibi",
-    name: "Artomata Painter Chibi",
+    id: "on_the_spectrum-painter-chibi",
+    name: "OnTheSpectrum Painter Chibi",
     shortName: "Painter Chibi",
     description: "Original rig-ready anime mascot generated procedurally in Blender.",
-    modelUrl: "/models/artomata-painter-chibi.glb",
-    blendUrl: "/models/artomata-painter-chibi.blend",
-    previewUrl: "/renders/artomata-painter-chibi-preview.png",
-    metadataUrl: "/models/artomata-painter-chibi.metadata.json",
-    downloadName: "artomata-painter-chibi.glb",
-    blendDownloadName: "artomata-painter-chibi.blend",
-    snapshotName: "artomata-painter-chibi-snapshot.png",
+    modelUrl: "/models/on_the_spectrum-painter-chibi.glb",
+    blendUrl: "/models/on_the_spectrum-painter-chibi.blend",
+    previewUrl: "/renders/on_the_spectrum-painter-chibi-preview.png",
+    metadataUrl: "/models/on_the_spectrum-painter-chibi.metadata.json",
+    downloadName: "on_the_spectrum-painter-chibi.glb",
+    blendDownloadName: "on_the_spectrum-painter-chibi.blend",
+    snapshotName: "on_the_spectrum-painter-chibi-snapshot.png",
     sourceLabel: "Blender MCP",
     defaultAnimation: "Idle_Stationary",
     animationClips: [
@@ -39,29 +39,29 @@ const builtInAssetRegistry = [
         id: "web-glb",
         label: "Web GLB",
         detail: "Animated viewer file",
-        href: "/models/artomata-painter-chibi.glb",
-        downloadName: "artomata-painter-chibi.glb",
+        href: "/models/on_the_spectrum-painter-chibi.glb",
+        downloadName: "on_the_spectrum-painter-chibi.glb",
       },
       {
         id: "mixamo-fbx",
         label: "Mixamo FBX",
         detail: "Best-effort rigged upload",
-        href: "/exports/artomata-painter-chibi/artomata-painter-chibi-mixamo.fbx",
-        downloadName: "artomata-painter-chibi-mixamo.fbx",
+        href: "/exports/on_the_spectrum-painter-chibi/on_the_spectrum-painter-chibi-mixamo.fbx",
+        downloadName: "on_the_spectrum-painter-chibi-mixamo.fbx",
       },
       {
         id: "mixamo-obj-zip",
         label: "OBJ ZIP",
         detail: "Unrigged Mixamo fallback",
-        href: "/exports/artomata-painter-chibi/artomata-painter-chibi-mixamo-obj.zip",
-        downloadName: "artomata-painter-chibi-mixamo-obj.zip",
+        href: "/exports/on_the_spectrum-painter-chibi/on_the_spectrum-painter-chibi-mixamo-obj.zip",
+        downloadName: "on_the_spectrum-painter-chibi-mixamo-obj.zip",
       },
       {
         id: "blend",
         label: "Blender source",
         detail: "Animated source scene",
-        href: "/models/artomata-painter-chibi.blend",
-        downloadName: "artomata-painter-chibi.blend",
+        href: "/models/on_the_spectrum-painter-chibi.blend",
+        downloadName: "on_the_spectrum-painter-chibi.blend",
       },
     ],
     placement: {
@@ -91,8 +91,8 @@ const builtInAssetRegistry = [
       target: "Rig-ready web showcase",
       rig: "Basic named armature",
       effects: "Baked blush, eye layers, cloth shadows, cyan paint glow",
-      sourceScene: "public/models/artomata-painter-chibi.blend",
-      preview: "public/renders/artomata-painter-chibi-preview.png",
+      sourceScene: "public/models/on_the_spectrum-painter-chibi.blend",
+      preview: "public/renders/on_the_spectrum-painter-chibi-preview.png",
     },
     metadataFallback: {
       counts: {
@@ -1270,4 +1270,4 @@ const builtInAssetRegistry = [
 
 export const assetRegistry = [...builtInAssetRegistry, ...generatedAssetRegistry];
 
-export const defaultAssetId = "artomata-painter-chibi";
+export const defaultAssetId = "on_the_spectrum-painter-chibi";

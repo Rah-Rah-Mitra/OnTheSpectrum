@@ -215,7 +215,7 @@ function buildGeneratorSpec(form) {
     pipelineId: getGeneratorPipeline(form),
     name,
     subject: name,
-    visualStyle: form.style.trim() || "Stylized Artomata procedural asset",
+    visualStyle: form.style.trim() || "Stylized OnTheSpectrum procedural asset",
     requiredParts,
     materialPalette,
     rigTarget:
@@ -422,7 +422,7 @@ const defaultWorldMeta = {
 const defaultWorldGenerationPrompt =
   "Create a compact playable forge training yard. Use a 12 x 9 grid with boundary walls, one spawn tile layered with a non-enemy character, one door, readable combat lanes, two enemies, cover walls, three lights, and a few workshop props. Keep all itemIds from the provided palette and add short tags/notes that explain placement intent.";
 
-const worldLibrarySchemaVersion = "artomata.world-library.v1";
+const worldLibrarySchemaVersion = "on_the_spectrum.world-library.v1";
 const worldLibraryStorageKey = worldLibrarySchemaVersion;
 const worldSeedVersion = 1;
 const seedWorldIds = {
@@ -802,7 +802,7 @@ function createAtelierNexusCells() {
   world.addHorizontalWall(2, 5, 8, [6]);
   world.addHorizontalWall(7, 1, 3, [2]);
   world.addSpawn(2, 5, ["atelier"]);
-  world.addPlayer("artomata-painter-chibi", 2, 5, { rotation: 90, tags: ["player", "painter", "hub"] });
+  world.addPlayer("on_the_spectrum-painter-chibi", 2, 5, { rotation: 90, tags: ["player", "painter", "hub"] });
   world.addEnemy("goblin-grunt-enemy", 3, 5, "enemy-melee", { rotation: 270, tags: ["enemy", "melee", "spawn-pressure"] });
   world.addEnemy("goblin-grunt-enemy", 6, 4, "enemy-melee", { rotation: 270, tags: ["enemy", "melee", "center-lane"] });
   world.addEnemy("forest-ranger-npc", 10, 6, "enemy-ranged", { rotation: 270, tags: ["enemy", "ranged", "east-balcony"] });
@@ -1217,7 +1217,7 @@ function serializeWorld(meta, cells, worldId) {
   const theme = worldThemes.find((item) => item.id === meta.theme) ?? worldThemes[0];
   const placements = getSerializedWorldPlacements(cells);
   return {
-    schemaVersion: "artomata.world-grid.v2",
+    schemaVersion: "on_the_spectrum.world-grid.v2",
     ...(worldId ? { id: worldId } : {}),
     name: meta.name,
     theme: meta.theme,
@@ -3412,7 +3412,7 @@ function Brand() {
   return (
     <div className="brand">
       <Paintbrush aria-hidden="true" />
-      <span>Artomata Asset Viewer</span>
+      <span>OnTheSpectrum Asset Viewer</span>
     </div>
   );
 }

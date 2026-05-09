@@ -67,6 +67,6 @@ export function inspectGlb(filePath) {
 }
 
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) {
-  const target = process.argv[2] || "public/models/artomata-painter-chibi.glb";
+  const target = process.argv[2] || "public/models/on_the_spectrum-painter-chibi.glb";
   console.log(JSON.stringify(inspectGlb(target), null, 2));
 }

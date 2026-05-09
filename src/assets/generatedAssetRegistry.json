@@ -3,7 +3,7 @@
     "id": "codex-smoke-beacon-prop",
     "name": "Codex Smoke Beacon Prop",
     "shortName": "Codex Smoke Beacon Prop",
-    "description": "Stylized Artomata procedural asset with readable silhouette and polished materials A compact stylized test beacon prop for validating one-click generation, generated procedurally in Blender.",
+    "description": "Stylized OnTheSpectrum procedural asset with readable silhouette and polished materials A compact stylized test beacon prop for validating one-click generation, generated procedurally in Blender.",
     "modelUrl": "/models/codex-smoke-beacon-prop.glb",
     "blendUrl": "/models/codex-smoke-beacon-prop.blend",
     "previewUrl": "/renders/codex-smoke-beacon-prop-preview.png",
@@ -11,7 +11,7 @@
     "downloadName": "codex-smoke-beacon-prop.glb",
     "blendDownloadName": "codex-smoke-beacon-prop.blend",
     "snapshotName": "codex-smoke-beacon-prop-snapshot.png",
-    "sourceLabel": "Artomata asset agent",
+    "sourceLabel": "OnTheSpectrum asset agent",
     "defaultAnimation": "",
     "animationClips": [],
     "exports": [

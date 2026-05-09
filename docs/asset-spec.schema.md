@@ -4,8 +4,8 @@ Use this contract for future generated assets.
 
 ```json
 {
-  "slug": "artomata-painter-chibi",
-  "name": "Artomata Painter Chibi",
+  "slug": "on_the_spectrum-painter-chibi",
+  "name": "OnTheSpectrum Painter Chibi",
   "family": "character",
   "subject": "original anime chibi painter mascot",
   "target": "rig-ready web showcase",

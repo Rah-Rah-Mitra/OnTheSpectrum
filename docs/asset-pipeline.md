@@ -1,4 +1,4 @@
-# Artomata Asset Pipeline
+# OnTheSpectrum Asset Pipeline
 
 This repo produces Blender-sourced assets plus a web-ready Three.js viewer. Blender is the source of truth: do not substitute browser primitives for a requested Blender model.
 

@@ -48,7 +48,7 @@ async function openWorldPage(chromium, viewport) {
   page.on("pageerror", (error) => consoleIssues.push(`exception: ${error.message}`));
   page.on("requestfailed", (request) => requestFailures.push(`${request.url()} :: ${request.failure()?.errorText}`));
   await page.addInitScript(() => {
-    window.localStorage.removeItem("artomata.world-library.v1");
+    window.localStorage.removeItem("on_the_spectrum.world-library.v1");
   });
   await page.goto(url, { waitUntil: "load", timeout: 30000 });
   await waitForWorldReady(page);
@@ -338,7 +338,7 @@ async function main() {
             state.activeWorldName === state.expected.name &&
             state.canvasLength > 5000,
         ),
-        pageIdentity: desktopState.title === "Artomata Asset Viewer" && desktopState.hash === "#world-3d",
+        pageIdentity: desktopState.title === "OnTheSpectrum Asset Viewer" && desktopState.hash === "#world-3d",
         desktop3dReady:
           desktopState.activeView === "3D" &&
           desktopState.statusData === "ready" &&

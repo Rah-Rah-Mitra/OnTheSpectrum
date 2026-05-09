@@ -1,4 +1,4 @@
-"""Reusable Blender helpers for Artomata procedural asset generation.
+"""Reusable Blender helpers for OnTheSpectrum procedural asset generation.
 
 These functions are intended to be imported from Blender's Python runtime.
 Keep them dependency-free so they work through the live MCP bridge and through
