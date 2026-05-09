@@ -1,0 +1,22 @@
+Create a new Blender-sourced VFX asset using the Artomata asset workflow.
+
+Asset brief:
+- Type: VFX
+- VFX family: aura / portal / fire / smoke / sparks / lightning / energy beam / projectile / impact burst / magic circle / hologram / water splash / wind trail / custom
+- Name:
+- Style:
+- Required visual elements:
+- Motion behavior:
+- Duration and loop: looping / one-shot, seconds:
+- Emission source: point / ring / object-bound / ground plane / character-bound / free-floating
+- Materials/colors:
+- Transparency style: additive glow / alpha-blended smoke / opaque stylized mesh / mixed
+- Implementation preference:
+  - GLB-compatible baked mesh/curve animation
+  - baked particle meshes
+  - animated shader-style materials where GLB-safe
+  - optional sprite/texture sequence only if viewer support exists
+- Rigging: none / simple transform rig / curve or emitter controls
+- Animations: default / specific clips
+- Viewer framing notes:
+- Performance budget: keep under 100k triangles, 16 materials, 12 MB GLB unless explicitly approved

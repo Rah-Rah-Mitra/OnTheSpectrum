@@ -4,9 +4,12 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "node tools/asset-pipeline/dev_with_asset_server.mjs",
+    "dev:vite": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
+    "asset:agent": "node tools/asset-pipeline/asset_agent.mjs",
+    "asset:server": "node tools/asset-pipeline/asset_server.mjs",
     "asset:preflight": "python tools/asset-pipeline/preflight_blender.py",
     "asset:exports": "python tools/asset-pipeline/run_blender_asset.py --script tools/asset-pipeline/add_mixamo_exports_and_animations.py",
     "asset:mixamo-exports": "python tools/asset-pipeline/run_blender_asset.py --script tools/asset-pipeline/regenerate_mixamo_exports.py",

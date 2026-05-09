@@ -1,0 +1,128 @@
+{
+  "asset": "Village Blacksmith NPC",
+  "slug": "village-blacksmith-npc",
+  "generator": "create_village_blacksmith_npc.py",
+  "paths": {
+    "blend": "public/models/village-blacksmith-npc.blend",
+    "glb": "public/models/village-blacksmith-npc.glb",
+    "preview": "public/renders/village-blacksmith-npc-preview.png",
+    "metadata": "public/models/village-blacksmith-npc.metadata.json"
+  },
+  "counts": {
+    "objects": 63,
+    "mesh_objects": 58,
+    "geometry_objects": 58,
+    "materials": 15,
+    "triangles": 32968,
+    "bones": 21,
+    "animations": 4
+  },
+  "materials": [
+    "MAT_Base_ForgeSlate",
+    "MAT_Boots_DarkForgeLeather",
+    "MAT_Cloth_DarkFoldGray",
+    "MAT_Cloth_RolledGrayShirt",
+    "MAT_Gloves_BlackenedLeather",
+    "MAT_Hair_BeardDeepBrown",
+    "MAT_Leather_DarkBrownApron",
+    "MAT_Leather_WornApronEdges",
+    "MAT_Metal_AgedBrassBuckle",
+    "MAT_Prop_BlackenedSteel",
+    "MAT_Prop_HammerBrushedSteel",
+    "MAT_Prop_HammerHandleOak",
+    "MAT_Shadow_BakedSoftContact",
+    "MAT_Skin_RuddyForgeBlush",
+    "MAT_Skin_WarmBlacksmith"
+  ],
+  "animations": {
+    "clips": [
+      "Hammering_Loop",
+      "Idle_Stationary",
+      "Talking_Gesture",
+      "Walk_InPlace"
+    ],
+    "default": "Idle_Stationary",
+    "embedded_in_glb": true
+  },
+  "bounds": {
+    "min": [
+      -1.1395,
+      -1.0811,
+      -0.0475
+    ],
+    "max": [
+      1.7514,
+      0.82,
+      2.855
+    ],
+    "size": [
+      2.8909,
+      1.9011,
+      2.9025
+    ],
+    "center": [
+      0.306,
+      -0.1305,
+      1.4038
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912,
+    "material_warning": 16
+  },
+  "file_sizes": {
+    "blend_bytes": 706354,
+    "glb_bytes": 1292440,
+    "preview_bytes": 1673860,
+    "mixamo_fbx_bytes": 2128508,
+    "mixamo_obj_zip_bytes": 642077
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": true,
+    "source": "Blender MCP live bridge"
+  },
+  "exports": {
+    "mixamo_fbx": "public/exports/village-blacksmith-npc/village-blacksmith-npc-mixamo.fbx",
+    "mixamo_obj_zip": "public/exports/village-blacksmith-npc/village-blacksmith-npc-mixamo-obj.zip"
+  },
+  "armature": {
+    "objects": [
+      "RIG_VillageBlacksmithNPC_BasicArmature"
+    ],
+    "bones": [
+      "chest",
+      "foot.L",
+      "foot.R",
+      "forearm.L",
+      "forearm.R",
+      "hair_beard",
+      "hammer",
+      "hand.L",
+      "hand.R",
+      "head",
+      "neck",
+      "pelvis",
+      "root",
+      "shin.L",
+      "shin.R",
+      "spine",
+      "thigh.L",
+      "thigh.R",
+      "tool_belt",
+      "upper_arm.L",
+      "upper_arm.R"
+    ],
+    "rig_depth": "basic humanoid Mixamo best-effort armature with whole-part vertex groups"
+  },
+  "notes": [
+    "Stylized fantasy village blacksmith NPC with a sturdy build, dark leather apron, rolled gray sleeves, blackened gloves, heavy boots, full beard, tool belt, and visible hammer.",
+    "Embedded GLB clips: Idle_Stationary, Walk_InPlace, Hammering_Loop, and Talking_Gesture.",
+    "Mixamo FBX and OBJ ZIP are best-effort exports; stylized proportions, hammer geometry, apron pieces, beard pieces, and whole-part weights may need manual Mixamo adjustment.",
+    "Mixamo exports are front-corrected with a 180-degree forward-axis flip; the Blender source and web GLB keep the authored -Y front.",
+    "Display base and contact-shadow extras are excluded from Mixamo exports."
+  ]
+}

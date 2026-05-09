@@ -1,4 +1,6 @@
-export const assetRegistry = [
+import generatedAssetRegistry from "./generatedAssetRegistry.json";
+
+const builtInAssetRegistry = [
   {
     id: "artomata-painter-chibi",
     name: "Artomata Painter Chibi",
@@ -17,6 +19,21 @@ export const assetRegistry = [
       { name: "Idle_Stationary", label: "Idle" },
       { name: "Walk_InPlace", label: "Walk" },
     ],
+    combat: {
+      role: "player",
+      stats: {
+        maxHealth: 110,
+        damage: 18,
+        range: 1.15,
+        moveSpeed: 3.25,
+        cooldown: 0.55,
+      },
+      attacks: [
+        { id: "paint-swipe", label: "Paint Swipe", type: "melee", damage: 18, range: 1.15, cooldown: 0.55, clip: "Walk_InPlace" },
+        { id: "paint-bolt", label: "Paint Bolt", type: "ranged", damage: 14, range: 5.6, cooldown: 0.7, projectileSpeed: 7.5, clip: "Idle_Stationary" },
+        { id: "color-burst", label: "Color Burst", type: "burst", damage: 22, range: 1.9, cooldown: 4.5, clip: "Idle_Stationary" },
+      ],
+    },
     exports: [
       {
         id: "web-glb",
@@ -113,6 +130,21 @@ export const assetRegistry = [
       { name: "Walk_InPlace", label: "Walk" },
       { name: "Run_InPlace", label: "Run" },
     ],
+    combat: {
+      role: "player",
+      stats: {
+        maxHealth: 100,
+        damage: 16,
+        range: 6,
+        moveSpeed: 3.75,
+        cooldown: 0.48,
+      },
+      attacks: [
+        { id: "blaster-shot", label: "Blaster Shot", type: "ranged", damage: 16, range: 6.2, cooldown: 0.48, projectileSpeed: 9, clip: "Run_InPlace" },
+        { id: "charged-shot", label: "Charged Shot", type: "ranged", damage: 28, range: 7.4, cooldown: 1.25, projectileSpeed: 8, clip: "Idle_Stationary" },
+        { id: "quick-step", label: "Quick Step", type: "dash", damage: 0, range: 1.4, cooldown: 3.4, clip: "Run_InPlace" },
+      ],
+    },
     exports: [
       {
         id: "web-glb",
@@ -212,6 +244,20 @@ export const assetRegistry = [
       { name: "Hit_Reaction", label: "Hit" },
       { name: "Death", label: "Death" },
     ],
+    combat: {
+      role: "enemy-melee",
+      stats: {
+        maxHealth: 85,
+        damage: 15,
+        range: 1,
+        moveSpeed: 3.1,
+        cooldown: 1,
+      },
+      attacks: [
+        { id: "club-swing", label: "Club Swing", type: "melee", damage: 15, range: 1.05, cooldown: 1, clip: "Attack_Swing" },
+        { id: "lunge", label: "Lunge", type: "melee", damage: 20, range: 1.45, cooldown: 2.4, clip: "Attack_Swing" },
+      ],
+    },
     exports: [
       {
         id: "web-glb",
@@ -312,6 +358,21 @@ export const assetRegistry = [
       { name: "Aim_Hold", label: "Aim" },
       { name: "Shoot_Release", label: "Shoot" },
     ],
+    combat: {
+      role: "enemy-ranged",
+      stats: {
+        maxHealth: 95,
+        damage: 17,
+        range: 6.4,
+        moveSpeed: 3.4,
+        cooldown: 1.25,
+      },
+      attacks: [
+        { id: "arrow-shot", label: "Arrow Shot", type: "ranged", damage: 17, range: 6.4, cooldown: 1.25, projectileSpeed: 8, clip: "Shoot_Release" },
+        { id: "piercing-arrow", label: "Piercing Arrow", type: "ranged", damage: 26, range: 7.2, cooldown: 2.8, projectileSpeed: 9, clip: "Shoot_Release" },
+        { id: "backstep", label: "Backstep", type: "dash", damage: 0, range: 1.2, cooldown: 3.1, clip: "Run_InPlace" },
+      ],
+    },
     exports: [
       {
         id: "web-glb",
@@ -880,6 +941,21 @@ export const assetRegistry = [
       { name: "Hammering_Loop", label: "Hammer" },
       { name: "Talking_Gesture", label: "Talk" },
     ],
+    combat: {
+      role: "player",
+      stats: {
+        maxHealth: 150,
+        damage: 24,
+        range: 1.18,
+        moveSpeed: 2.8,
+        cooldown: 0.85,
+      },
+      attacks: [
+        { id: "hammer-arc", label: "Hammer Arc", type: "melee", damage: 24, range: 1.18, cooldown: 0.85, clip: "Hammering_Loop" },
+        { id: "ground-slam", label: "Ground Slam", type: "burst", damage: 32, range: 1.85, cooldown: 3.2, clip: "Hammering_Loop" },
+        { id: "brace", label: "Brace", type: "guard", damage: 0, range: 0, cooldown: 4, clip: "Idle_Stationary" },
+      ],
+    },
     exports: [
       {
         id: "web-glb",
@@ -1110,6 +1186,88 @@ export const assetRegistry = [
       },
     },
   },
+  {
+    id: "violet-rift-portal",
+    name: "Violet Rift Portal",
+    shortName: "Violet Rift",
+    description:
+      "Stylized fantasy portal VFX with floating basalt ring shards, a violet energy disk, cyan highlights, drifting mesh sparks, and a faint ground glow.",
+    modelUrl: "/models/violet-rift-portal.glb",
+    blendUrl: "/models/violet-rift-portal.blend",
+    previewUrl: "/renders/violet-rift-portal-preview.png",
+    metadataUrl: "/models/violet-rift-portal.metadata.json",
+    downloadName: "violet-rift-portal.glb",
+    blendDownloadName: "violet-rift-portal.blend",
+    snapshotName: "violet-rift-portal-snapshot.png",
+    sourceLabel: "Blender MCP",
+    defaultAnimation: "Loop_PortalSwirl",
+    animationClips: [{ name: "Loop_PortalSwirl", label: "Portal Loop" }],
+    exports: [
+      {
+        id: "web-glb",
+        label: "Web GLB",
+        detail: "Animated VFX viewer file",
+        href: "/models/violet-rift-portal.glb",
+        downloadName: "violet-rift-portal.glb",
+      },
+      {
+        id: "blend",
+        label: "Blender source",
+        detail: "Animated source scene",
+        href: "/models/violet-rift-portal.blend",
+        downloadName: "violet-rift-portal.blend",
+      },
+    ],
+    placement: {
+      mode: "floor-y",
+      offset: [0, 0, 0],
+    },
+    initialTransform: {
+      rotation: [0, -0.18, 0],
+      scale: 1,
+    },
+    camera: {
+      desktop: {
+        position: [2.35, 1.38, 5.0],
+        target: [0, 1.18, 0],
+      },
+      mobile: {
+        position: [1.08, 1.28, 6.05],
+        target: [0, 1.2, 0],
+      },
+      focus: {
+        position: [1.18, 1.32, 3.2],
+        target: [0, 1.2, 0],
+      },
+    },
+    authored: {
+      family: "VFX",
+      target: "Looping stylized fantasy portal showcase",
+      rig: "Simple transform rig",
+      effects:
+        "Floating broken basalt ring, violet emissive energy disk, cyan swirl highlights, mesh-authored orbiting sparks, and faint ground glow",
+      sourceScene: "public/models/violet-rift-portal.blend",
+      preview: "public/renders/violet-rift-portal-preview.png",
+    },
+    metadataFallback: {
+      counts: {
+        mesh_objects: 61,
+        geometry_objects: 61,
+        triangles: 83740,
+        materials: 7,
+        bones: 0,
+        animations: 1,
+      },
+      bounds: {
+        size: [2.6417, 1.2168, 2.5439],
+      },
+      file_sizes: {
+        glb_bytes: 1830796,
+      },
+    },
+  },
 ];
+
+export const assetRegistry = [...builtInAssetRegistry, ...generatedAssetRegistry];
 
 export const defaultAssetId = "artomata-painter-chibi";

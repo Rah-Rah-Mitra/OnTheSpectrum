@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Box,
@@ -25,6 +25,7 @@ import {
   Palette,
   Pause,
   Play,
+  Plus,
   RefreshCw,
   RotateCcw,
   RotateCw,
@@ -80,8 +81,10 @@ const sceneModes = {
 };
 
 const pageTabs = [
-  { id: "viewer", label: "Asset Viewer", Icon: Home },
-  { id: "world", label: "World Creator", Icon: LayoutGrid },
+  { id: "generator", page: "generator", hash: "#generator", label: "Asset Generator", Icon: WandSparkles },
+  { id: "viewer", page: "viewer", hash: "#viewer", label: "Asset Viewer", Icon: Home },
+  { id: "world", page: "world", hash: "#world", label: "World Creator", Icon: LayoutGrid },
+  { id: "world-3d", page: "world", hash: "#world-3d", label: "World 3D", Icon: Box },
 ];
 
 const brushModes = {
@@ -96,6 +99,268 @@ const worldThemes = [
   { id: "garden-room", label: "Garden Room", mood: "soft botanical interior with paths, blooms, and quiet staging pockets" },
   { id: "training-floor", label: "Training Floor", mood: "clear traversal lanes for action character blocking and animation tests" },
 ];
+
+const assetGeneratorTypes = [
+  { id: "character", label: "Character" },
+  { id: "furniture", label: "Furniture" },
+  { id: "plant", label: "Plant" },
+  { id: "prop", label: "Prop" },
+  { id: "vfx", label: "VFX" },
+];
+
+const vfxFamilies = [
+  "aura",
+  "portal",
+  "fire",
+  "smoke",
+  "sparks",
+  "lightning",
+  "energy beam",
+  "projectile",
+  "impact burst",
+  "magic circle",
+  "hologram",
+  "water splash",
+  "wind trail",
+  "custom",
+];
+
+const emissionSources = ["point", "ring", "object-bound", "ground plane", "character-bound", "free-floating"];
+const transparencyStyles = ["additive glow", "alpha-blended smoke", "opaque stylized mesh", "mixed"];
+
+const defaultAssetGeneratorForm = {
+  type: "character",
+  name: "",
+  style: "",
+  requiredParts: "",
+  materials: "",
+  rigging: "humanoid Mixamo best-effort",
+  animations: "default",
+  animationNotes: "",
+  viewerFraming: "",
+  freeformBrief: "",
+  vfxFamily: "portal",
+  motionBehavior: "",
+  durationSeconds: "4",
+  loopMode: "looping",
+  emissionSource: "free-floating",
+  transparencyStyle: "additive glow",
+  implementationPreference: "GLB-compatible baked mesh/curve animation",
+};
+
+function slugifyForAsset(value) {
+  return (
+    String(value || "generated-asset")
+      .toLowerCase()
+      .replace(/['"]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 64) || "generated-asset"
+  );
+}
+
+function splitFormList(value, fallback) {
+  const items = String(value || "")
+    .split(/\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return items.length ? items : fallback;
+}
+
+function toClipName(value, prefix = "") {
+  const base = String(value || "Default")
+    .replace(/[^A-Za-z0-9]+/g, "_")
+    .replace(/(^_|_$)/g, "");
+  const clipped = base || "Default";
+  return `${prefix}${clipped.charAt(0).toUpperCase()}${clipped.slice(1)}`;
+}
+
+function getGeneratorPipeline(form) {
+  if (form.type === "character") {
+    return /chibi|mascot/i.test(`${form.name} ${form.style}`) ? "character.chibi_mascot" : "character.humanoid_basic";
+  }
+  if (form.type === "furniture") return "furniture.static_or_mechanical";
+  if (form.type === "plant") return "plant.swaying_botanical";
+  if (form.type === "vfx") return "vfx.baked_mesh_curve";
+  return "prop.static_or_turntable";
+}
+
+function buildGeneratorClips(form) {
+  if (form.animations === "none") return [];
+  if (form.animations === "specific") {
+    return splitFormList(form.animationNotes, []).map((clip) => ({
+      name: toClipName(clip),
+      label: clip.replace(/[_-]+/g, " "),
+    }));
+  }
+  if (form.type === "character") {
+    return [
+      { name: "Idle_Stationary", label: "Idle" },
+      { name: "Walk_InPlace", label: "Walk" },
+    ];
+  }
+  if (form.type === "plant") return [{ name: "Sway_Gentle", label: "Sway" }];
+  if (form.type === "vfx") return [{ name: toClipName(form.vfxFamily, "Loop_"), label: "Loop" }];
+  return [];
+}
+
+function buildGeneratorSpec(form) {
+  const name = form.name.trim() || `${assetGeneratorTypes.find((item) => item.id === form.type)?.label ?? "Asset"} Concept`;
+  const requiredParts = splitFormList(form.requiredParts, ["primary silhouette", "detail accents", "display base"]);
+  const materialPalette = splitFormList(form.materials, ["matte primary color", "secondary accent", "soft contact shadow"]);
+  const animationClips = buildGeneratorClips(form);
+  const baseSpec = {
+    slug: slugifyForAsset(name),
+    assetFamily: form.type,
+    pipelineId: getGeneratorPipeline(form),
+    name,
+    subject: name,
+    visualStyle: form.style.trim() || "Stylized Artomata procedural asset",
+    requiredParts,
+    materialPalette,
+    rigTarget:
+      form.type === "vfx"
+        ? "simple transform rig"
+        : form.type === "plant"
+          ? "simple transform rig"
+          : form.rigging,
+    animationClips,
+    viewerFraming: form.viewerFraming.trim() || "Centered front-quarter viewer framing",
+    budget: {
+      maxTriangles: 100000,
+      maxMaterials: 16,
+      maxGlbMb: 12,
+      approvedOverBudget: false,
+    },
+    vfx: null,
+    character: null,
+    furniture: null,
+    plant: null,
+    prop: null,
+  };
+  if (form.type === "vfx") {
+    baseSpec.vfx = {
+      family: form.vfxFamily,
+      motionBehavior: form.motionBehavior.trim() || "Looping transform motion with baked mesh accents",
+      durationSeconds: Number(form.durationSeconds) || 4,
+      loop: form.loopMode === "looping",
+      emissionSource: form.emissionSource,
+      transparencyStyle: form.transparencyStyle,
+      implementationPreference: form.implementationPreference,
+    };
+  }
+  if (form.type === "character") {
+    baseSpec.character = {
+      silhouette: form.style.trim() || "stylized readable humanoid",
+      outfit: requiredParts.join(", "),
+      accessories: requiredParts.slice(0, 4),
+    };
+  }
+  if (form.type === "furniture") {
+    baseSpec.furniture = { category: name, mechanicalParts: animationClips.length ? requiredParts.slice(0, 3) : [] };
+  }
+  if (form.type === "plant") {
+    baseSpec.plant = { botanicalType: name, swayIntensity: animationClips.length ? "gentle" : "none" };
+  }
+  if (form.type === "prop") {
+    baseSpec.prop = { category: name, displayMotion: animationClips.length ? animationClips[0].name : "none" };
+  }
+  return baseSpec;
+}
+
+function buildAssetGenerationBrief(form, spec) {
+  const lines = [
+    `Type: ${form.type === "vfx" ? "VFX" : form.type}`,
+    form.type === "vfx" ? `VFX family: ${form.vfxFamily}` : null,
+    `Name: ${spec.name}`,
+    `Style: ${spec.visualStyle}`,
+    `Required parts: ${spec.requiredParts.join(", ")}`,
+    `Materials/colors: ${spec.materialPalette.join(", ")}`,
+    `Rigging: ${spec.rigTarget}`,
+    `Animations: ${spec.animationClips.length ? spec.animationClips.map((clip) => clip.name).join(", ") : "none"}`,
+    form.type === "vfx" ? `Motion behavior: ${spec.vfx.motionBehavior}` : null,
+    form.type === "vfx" ? `Duration and loop: ${spec.vfx.loop ? "looping" : "one-shot"}, ${spec.vfx.durationSeconds} seconds` : null,
+    form.type === "vfx" ? `Emission source: ${spec.vfx.emissionSource}` : null,
+    form.type === "vfx" ? `Transparency style: ${spec.vfx.transparencyStyle}` : null,
+    form.type === "vfx" ? `Implementation preference: ${spec.vfx.implementationPreference}` : null,
+    `Viewer framing notes: ${spec.viewerFraming}`,
+    "Performance budget: keep under 100k triangles, 16 materials, 12 MB GLB unless explicitly approved",
+  ].filter(Boolean);
+  return [form.freeformBrief.trim(), lines.join("\n")].filter(Boolean).join("\n\n");
+}
+
+function quoteForPowerShell(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+function buildAssetAgentCommand(form, brief) {
+  return `npm run asset:agent -- --family ${form.type} --brief ${quoteForPowerShell(brief)}`;
+}
+
+function getAssetApiBase() {
+  return import.meta.env.VITE_ASSET_API_BASE || `${window.location.protocol}//${window.location.hostname || "127.0.0.1"}:5174`;
+}
+
+async function assetApiRequest(path, options = {}) {
+  const response = await fetch(`${getAssetApiBase()}${path}`, {
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options,
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || `Asset API request failed with status ${response.status}`);
+  return body;
+}
+
+const generatorStepLabels = {
+  queue: "Queue request",
+  normalize: "Normalize spec",
+  write: "Write generator",
+  preflight: "Blender preflight",
+  generate: "Generate in Blender",
+  validate: "Validate GLB",
+  register: "Register asset",
+};
+
+function isGeneratorJobActive(job) {
+  return job?.status === "queued" || job?.status === "running";
+}
+
+function getBlenderStatusLabel(blender) {
+  if (!blender) return "Checking local Blender runtime";
+  if (blender.mcpBridge?.executable) return "Blender MCP ready";
+  if (blender.mcpBridge?.listening) return "Blender MCP needs restart";
+  if (blender.backgroundAvailable) return "Background Blender ready";
+  return "Blender setup needed";
+}
+
+function getPublicHref(file) {
+  if (file?.href) return file.href;
+  const normalized = String(file?.path || "").replace(/\\/g, "/");
+  return normalized.startsWith("public/") ? normalized.slice("public".length) : normalized;
+}
+
+function validateGeneratorSpec(spec) {
+  return [
+    { ok: Boolean(spec.name.trim()), label: "Name", detail: spec.name.trim() ? "Ready" : "Add an asset name." },
+    {
+      ok: spec.requiredParts.length > 0,
+      label: "Parts",
+      detail: spec.requiredParts.length ? `${spec.requiredParts.length} part(s)` : "Add at least one required part.",
+    },
+    {
+      ok: spec.materialPalette.length > 0,
+      label: "Materials",
+      detail: spec.materialPalette.length ? `${spec.materialPalette.length} material note(s)` : "Add material or color notes.",
+    },
+    { ok: Boolean(spec.pipelineId), label: "Pipeline", detail: spec.pipelineId },
+    {
+      ok: spec.budget.maxTriangles <= 100000 && spec.budget.maxMaterials <= 16 && spec.budget.maxGlbMb <= 12,
+      label: "Budget",
+      detail: "100k triangles, 16 materials, 12 MB",
+    },
+    { ok: true, label: "Secrets", detail: "OpenAI runs only in the local CLI." },
+  ];
+}
 
 const structurePalette = [
   {
@@ -154,9 +419,51 @@ const defaultWorldMeta = {
   rules: "Keep at least one door or spawn, keep characters reachable, and use walls only where they clarify room boundaries.",
 };
 
+const defaultWorldGenerationPrompt =
+  "Create a compact playable forge training yard. Use a 12 x 9 grid with boundary walls, one spawn tile layered with a non-enemy character, one door, readable combat lanes, two enemies, cover walls, three lights, and a few workshop props. Keep all itemIds from the provided palette and add short tags/notes that explain placement intent.";
+
+const worldLibrarySchemaVersion = "artomata.world-library.v1";
+const worldLibraryStorageKey = worldLibrarySchemaVersion;
+const worldSeedVersion = 1;
+const seedWorldIds = {
+  atelier: "seed-atelier-nexus",
+  garden: "seed-garden-circuit",
+  market: "seed-market-concourse",
+  forge: "seed-forge-yard",
+  rift: "seed-rift-arena",
+};
+const seedDoorRotations = {
+  north: 180,
+  south: 0,
+  east: 90,
+  west: 270,
+};
+
 function getCellKey(x, y) {
   return `${x}:${y}`;
 }
+
+const worldCellLayers = {
+  structure: "structure",
+  occupant: "occupant",
+};
+
+const combatRoles = [
+  { id: "neutral", label: "Neutral" },
+  { id: "player", label: "Player" },
+  { id: "enemy-melee", label: "Enemy Melee" },
+  { id: "enemy-ranged", label: "Enemy Ranged" },
+];
+
+const combatRoleLabels = Object.fromEntries(combatRoles.map((role) => [role.id, role.label]));
+
+const combatStatFields = [
+  { id: "maxHealth", label: "Health", min: 1, max: 999, step: 1 },
+  { id: "damage", label: "Damage", min: 0, max: 250, step: 1 },
+  { id: "range", label: "Range", min: 0.2, max: 12, step: 0.1 },
+  { id: "moveSpeed", label: "Speed", min: 0.2, max: 8, step: 0.05 },
+  { id: "cooldown", label: "Cooldown", min: 0.1, max: 10, step: 0.05 },
+];
 
 function clampGridValue(value, min, max) {
   const parsed = Number(value);
@@ -172,10 +479,114 @@ function findAsset(id) {
   return assetRegistry.find((item) => item.id === id) ?? assetRegistry[0];
 }
 
+function isCharacterAsset(asset) {
+  return asset?.authored?.family === "Character";
+}
+
+function isEnemyRole(role) {
+  return role === "enemy-melee" || role === "enemy-ranged";
+}
+
+function getPaletteLayer(paletteItem) {
+  return paletteItem?.type === "asset" ? worldCellLayers.occupant : worldCellLayers.structure;
+}
+
+function createLayeredCell(x, y, layers = {}) {
+  return {
+    id: `cell-${x}-${y}`,
+    x,
+    y,
+    structure: layers.structure ?? null,
+    occupant: layers.occupant ?? null,
+  };
+}
+
+function getCellPlacements(cell) {
+  if (!cell) return [];
+  if (cell.type) return [cell];
+  return [cell.structure, cell.occupant].filter(Boolean);
+}
+
+function getPrimaryCellPlacement(cell) {
+  if (!cell) return null;
+  if (cell.type) return cell;
+  return cell.occupant ?? cell.structure ?? null;
+}
+
+function getSelectedCellPlacement(cell, paletteItem, brushMode) {
+  if (!cell) return null;
+  if (cell.type) return cell;
+  if (brushMode === "inspect") return cell.occupant ?? cell.structure;
+  const layer = getPaletteLayer(paletteItem);
+  return cell[layer] ?? cell.occupant ?? cell.structure;
+}
+
+function setCellLayer(cells, placement) {
+  const layer = placement.layer ?? (placement.type === "asset" ? worldCellLayers.occupant : worldCellLayers.structure);
+  const key = getCellKey(placement.x, placement.y);
+  const current = cells[key]?.type ? createLayeredCell(placement.x, placement.y) : cells[key] ?? createLayeredCell(placement.x, placement.y);
+  cells[key] = { ...current, x: placement.x, y: placement.y, [layer]: { ...placement, layer } };
+  return cells[key];
+}
+
+function removeCellLayer(cells, x, y, layer) {
+  const key = getCellKey(x, y);
+  const current = cells[key];
+  if (!current) return;
+  if (current.type) {
+    if ((current.type === "asset" ? worldCellLayers.occupant : worldCellLayers.structure) === layer) {
+      delete cells[key];
+    }
+    return;
+  }
+  const next = { ...current, [layer]: null };
+  if (!next.structure && !next.occupant) {
+    delete cells[key];
+  } else {
+    cells[key] = next;
+  }
+}
+
+function getDefaultCombatStats(asset) {
+  return {
+    maxHealth: asset.combat?.stats?.maxHealth ?? 100,
+    damage: asset.combat?.stats?.damage ?? 10,
+    range: asset.combat?.stats?.range ?? 1,
+    moveSpeed: asset.combat?.stats?.moveSpeed ?? worldMoveSpeed,
+    cooldown: asset.combat?.stats?.cooldown ?? 1,
+  };
+}
+
+function sanitizeCombatOverrides(overrides) {
+  return Object.fromEntries(
+    Object.entries(overrides ?? {})
+      .map(([key, value]) => [key, Number(value)])
+      .filter(([key, value]) => combatStatFields.some((field) => field.id === key) && Number.isFinite(value)),
+  );
+}
+
+function createCombatState(asset, combat = {}) {
+  if (!isCharacterAsset(asset)) return undefined;
+  const defaultRole = asset.combat?.role ?? "neutral";
+  const role = combatRoles.some((item) => item.id === combat.role) ? combat.role : defaultRole;
+  return {
+    role,
+    statOverrides: sanitizeCombatOverrides(combat.statOverrides),
+  };
+}
+
+function getResolvedCombatStats(asset, combat = {}) {
+  return {
+    ...getDefaultCombatStats(asset),
+    ...sanitizeCombatOverrides(combat.statOverrides),
+  };
+}
+
 function createStructureCell(item, x, y, overrides = {}) {
   return {
     id: `${item.id}-${x}-${y}`,
     type: "structure",
+    layer: worldCellLayers.structure,
     itemId: item.id,
     label: item.label,
     family: item.family,
@@ -189,13 +600,16 @@ function createStructureCell(item, x, y, overrides = {}) {
     agentHint: item.agentHint,
     tags: overrides.tags ?? [item.family.toLowerCase()],
     notes: overrides.notes ?? "",
+    ...(item.id === "door" && overrides.targetWorldId ? { targetWorldId: overrides.targetWorldId } : {}),
   };
 }
 
 function createAssetCell(asset, x, y, overrides = {}) {
+  const combat = createCombatState(asset, overrides.combat);
   return {
     id: `${asset.id}-${x}-${y}`,
     type: "asset",
+    layer: worldCellLayers.occupant,
     itemId: asset.id,
     label: asset.shortName,
     family: asset.authored.family,
@@ -210,17 +624,20 @@ function createAssetCell(asset, x, y, overrides = {}) {
     agentHint: asset.description,
     tags: overrides.tags ?? [asset.authored.family.toLowerCase()],
     notes: overrides.notes ?? "",
+    ...(combat ? { combat } : {}),
   };
 }
 
-function createPaletteCell(paletteItem, x, y, previousCell) {
-  const overrides = previousCell
+function createPalettePlacement(paletteItem, x, y, previousPlacement) {
+  const overrides = previousPlacement
     ? {
-        rotation: previousCell.rotation,
-        scale: previousCell.scale,
-        elevation: previousCell.elevation,
-        tags: previousCell.tags,
-        notes: previousCell.notes,
+        rotation: previousPlacement.rotation,
+        scale: previousPlacement.scale,
+        elevation: previousPlacement.elevation,
+        tags: previousPlacement.tags,
+        notes: previousPlacement.notes,
+        combat: previousPlacement.combat,
+        targetWorldId: previousPlacement.targetWorldId,
       }
     : {};
   if (paletteItem.type === "asset") {
@@ -235,7 +652,7 @@ function createStarterWorldCells(columns = defaultWorldMeta.columns, rows = defa
   for (let y = 0; y < rows; y += 1) {
     for (let x = 0; x < columns; x += 1) {
       if (x === 0 || y === 0 || x === columns - 1 || y === rows - 1) {
-        cells[getCellKey(x, y)] = createStructureCell(wall, x, y, { tags: ["boundary", "wall"] });
+        setCellLayer(cells, createStructureCell(wall, x, y, { tags: ["boundary", "wall"] }));
       }
     }
   }
@@ -243,55 +660,370 @@ function createStarterWorldCells(columns = defaultWorldMeta.columns, rows = defa
   const door = findStructure("door");
   const spawn = findStructure("spawn");
   const light = findStructure("light");
-  cells[getCellKey(Math.floor(columns / 2), rows - 1)] = createStructureCell(door, Math.floor(columns / 2), rows - 1, {
+  setCellLayer(cells, createStructureCell(door, Math.floor(columns / 2), rows - 1, {
     tags: ["entry", "south"],
     notes: "Primary entrance for generated scene traversal.",
-  });
-  cells[getCellKey(1, 1)] = createStructureCell(spawn, 1, 1, {
+  }));
+  setCellLayer(cells, createStructureCell(spawn, 1, 1, {
     tags: ["start", "agent"],
     notes: "Default spawn point for character placement.",
-  });
-  cells[getCellKey(columns - 2, 1)] = createStructureCell(light, columns - 2, 1, {
+  }));
+  setCellLayer(cells, createStructureCell(light, columns - 2, 1, {
     tags: ["lighting", "key"],
     notes: "Key light anchor for the first generated room.",
-  });
+  }));
 
   const character = assetRegistry.find((asset) => asset.authored.family === "Character") ?? assetRegistry[0];
+  const goblin = assetRegistry.find((asset) => asset.id === "goblin-grunt-enemy");
+  const ranger = assetRegistry.find((asset) => asset.id === "forest-ranger-npc");
   const table = assetRegistry.find((asset) => asset.id === "table");
   const chair = assetRegistry.find((asset) => asset.id === "chair");
   const flower = assetRegistry.find((asset) => asset.id === "flower");
-  cells[getCellKey(3, 3)] = createAssetCell(character, 3, 3, { tags: ["hero", "character"] });
-  if (table) cells[getCellKey(5, 4)] = createAssetCell(table, 5, 4, { rotation: 90, tags: ["furniture", "anchor"] });
-  if (chair) cells[getCellKey(5, 5)] = createAssetCell(chair, 5, 5, { rotation: 180, tags: ["furniture", "seat"] });
-  if (flower) cells[getCellKey(columns - 3, rows - 3)] = createAssetCell(flower, columns - 3, rows - 3, {
+  setCellLayer(cells, createAssetCell(character, 1, 1, { tags: ["hero", "character"], combat: { role: "player" } }));
+  if (goblin) setCellLayer(cells, createAssetCell(goblin, 4, 3, { tags: ["enemy", "melee"], combat: { role: "enemy-melee" } }));
+  if (ranger) setCellLayer(cells, createAssetCell(ranger, columns - 3, 2, { tags: ["enemy", "ranged"], combat: { role: "enemy-ranged" } }));
+  if (table) setCellLayer(cells, createAssetCell(table, 5, 4, { rotation: 90, tags: ["furniture", "anchor"] }));
+  if (chair) setCellLayer(cells, createAssetCell(chair, 5, 5, { rotation: 180, tags: ["furniture", "seat"] }));
+  if (flower) setCellLayer(cells, createAssetCell(flower, columns - 3, rows - 3, {
     scale: 0.85,
     tags: ["botanical", "accent"],
-  });
+  }));
 
   return cells;
+}
+
+function createSeedWorldBuilder(columns, rows) {
+  const cells = {};
+
+  function addStructure(id, x, y, overrides = {}) {
+    setCellLayer(cells, createStructureCell(findStructure(id), x, y, overrides));
+  }
+
+  function addAsset(id, x, y, overrides = {}) {
+    setCellLayer(cells, createAssetCell(findAsset(id), x, y, overrides));
+  }
+
+  function addBoundaryWalls() {
+    for (let y = 0; y < rows; y += 1) {
+      for (let x = 0; x < columns; x += 1) {
+        if (x === 0 || y === 0 || x === columns - 1 || y === rows - 1) {
+          addStructure("wall", x, y, { tags: ["boundary", "wall"] });
+        }
+      }
+    }
+  }
+
+  function addVerticalWall(x, yStart, yEnd, gaps = []) {
+    const gapSet = new Set(gaps);
+    for (let y = Math.max(0, yStart); y <= Math.min(rows - 1, yEnd); y += 1) {
+      if (!gapSet.has(y)) addStructure("wall", x, y, { tags: ["partition", "wall"] });
+    }
+  }
+
+  function addHorizontalWall(y, xStart, xEnd, gaps = []) {
+    const gapSet = new Set(gaps);
+    for (let x = Math.max(0, xStart); x <= Math.min(columns - 1, xEnd); x += 1) {
+      if (!gapSet.has(x)) addStructure("wall", x, y, { tags: ["partition", "wall"] });
+    }
+  }
+
+  function addDoor(x, y, targetWorldId, rotation, targetName, tags = []) {
+    addStructure("door", x, y, {
+      targetWorldId,
+      rotation,
+      tags: ["door", "linked", ...tags],
+      notes: `Linked passage to ${targetName}.`,
+    });
+  }
+
+  function addLight(x, y, tags = []) {
+    addStructure("light", x, y, {
+      tags: ["lighting", ...tags],
+      notes: "Readable 3D preview light anchor.",
+    });
+  }
+
+  function addSpawn(x, y, tags = []) {
+    addStructure("spawn", x, y, {
+      tags: ["start", ...tags],
+      notes: "Playable character spawn.",
+    });
+  }
+
+  function addPlayer(id, x, y, overrides = {}) {
+    addAsset(id, x, y, {
+      ...overrides,
+      tags: overrides.tags ?? ["player", "character"],
+      combat: { ...overrides.combat, role: "player" },
+    });
+  }
+
+  function addEnemy(id, x, y, role, overrides = {}) {
+    addAsset(id, x, y, {
+      ...overrides,
+      tags: overrides.tags ?? ["enemy", role === "enemy-ranged" ? "ranged" : "melee"],
+      combat: { ...overrides.combat, role },
+    });
+  }
+
+  function addNeutral(id, x, y, overrides = {}) {
+    addAsset(id, x, y, {
+      ...overrides,
+      tags: overrides.tags ?? ["neutral", "set-dressing"],
+      combat: { ...overrides.combat, role: "neutral" },
+    });
+  }
+
+  return {
+    cells,
+    addAsset,
+    addBoundaryWalls,
+    addDoor,
+    addEnemy,
+    addHorizontalWall,
+    addLight,
+    addNeutral,
+    addPlayer,
+    addSpawn,
+    addStructure,
+    addVerticalWall,
+  };
+}
+
+function createAtelierNexusCells() {
+  const world = createSeedWorldBuilder(14, 10);
+  world.addBoundaryWalls();
+  world.addDoor(6, 0, seedWorldIds.garden, seedDoorRotations.north, "Garden Circuit", ["north", "garden"]);
+  world.addDoor(13, 4, seedWorldIds.market, seedDoorRotations.east, "Market Concourse", ["east", "market"]);
+  world.addDoor(0, 5, seedWorldIds.forge, seedDoorRotations.west, "Forge Yard", ["west", "forge"]);
+  world.addDoor(7, 9, seedWorldIds.rift, seedDoorRotations.south, "Rift Arena", ["south", "rift"]);
+  world.addVerticalWall(4, 1, 8, [4, 5, 6]);
+  world.addVerticalWall(9, 1, 8, [2, 4, 5, 6]);
+  world.addHorizontalWall(2, 5, 8, [6]);
+  world.addHorizontalWall(7, 1, 3, [2]);
+  world.addSpawn(2, 5, ["atelier"]);
+  world.addPlayer("artomata-painter-chibi", 2, 5, { rotation: 90, tags: ["player", "painter", "hub"] });
+  world.addEnemy("goblin-grunt-enemy", 3, 5, "enemy-melee", { rotation: 270, tags: ["enemy", "melee", "spawn-pressure"] });
+  world.addEnemy("goblin-grunt-enemy", 6, 4, "enemy-melee", { rotation: 270, tags: ["enemy", "melee", "center-lane"] });
+  world.addEnemy("forest-ranger-npc", 10, 6, "enemy-ranged", { rotation: 270, tags: ["enemy", "ranged", "east-balcony"] });
+  world.addNeutral("table", 2, 3, { rotation: 90, tags: ["furniture", "worktable"] });
+  world.addNeutral("chair", 2, 4, { rotation: 180, scale: 0.95, tags: ["furniture", "seat"] });
+  world.addNeutral("tavern-wooden-table", 6, 6, { rotation: 90, scale: 0.9, tags: ["furniture", "planning-table"] });
+  world.addNeutral("tavern-chair", 7, 6, { rotation: 270, scale: 0.88, tags: ["furniture", "seat"] });
+  world.addNeutral("violet-rift-portal", 7, 7, { scale: 0.78, tags: ["vfx", "rift-preview"] });
+  world.addNeutral("flower", 11, 2, { scale: 0.72, tags: ["botanical", "display"] });
+  world.addLight(2, 2, ["west-room"]);
+  world.addLight(7, 4, ["center"]);
+  world.addLight(11, 7, ["east-room"]);
+  return world.cells;
+}
+
+function createGardenCircuitCells() {
+  const world = createSeedWorldBuilder(16, 12);
+  world.addBoundaryWalls();
+  world.addDoor(0, 2, seedWorldIds.atelier, seedDoorRotations.west, "Atelier Nexus", ["west", "atelier"]);
+  world.addDoor(15, 9, seedWorldIds.market, seedDoorRotations.east, "Market Concourse", ["east", "market"]);
+  world.addVerticalWall(4, 1, 10, [2, 5, 9]);
+  world.addVerticalWall(8, 1, 10, [2, 6, 10]);
+  world.addVerticalWall(12, 1, 10, [4, 8, 10]);
+  world.addHorizontalWall(6, 1, 3, [2]);
+  world.addHorizontalWall(5, 9, 11, [10]);
+  world.addSpawn(2, 2, ["garden"]);
+  world.addPlayer("forest-ranger-npc", 2, 2, { rotation: 90, tags: ["player", "ranger", "garden"] });
+  world.addEnemy("goblin-grunt-enemy", 9, 5, "enemy-melee", { rotation: 270, tags: ["enemy", "melee", "maze"] });
+  world.addEnemy("goblin-grunt-enemy", 13, 8, "enemy-melee", { rotation: 270, tags: ["enemy", "melee", "exit-guard"] });
+  world.addNeutral("tree", 2, 8, { scale: 0.9, tags: ["botanical", "tree"] });
+  world.addNeutral("tree", 6, 3, { scale: 0.8, rotation: 35, tags: ["botanical", "tree"] });
+  world.addNeutral("tree", 10, 9, { scale: 0.86, rotation: 180, tags: ["botanical", "tree"] });
+  world.addNeutral("flower", 3, 4, { scale: 0.75, tags: ["botanical", "flower"] });
+  world.addNeutral("flower", 6, 8, { scale: 0.7, tags: ["botanical", "flower"] });
+  world.addNeutral("flower", 14, 4, { scale: 0.72, tags: ["botanical", "flower"] });
+  world.addLight(2, 3, ["spawn"]);
+  world.addLight(7, 7, ["maze"]);
+  world.addLight(13, 9, ["exit"]);
+  return world.cells;
+}
+
+function createMarketConcourseCells() {
+  const world = createSeedWorldBuilder(16, 10);
+  world.addBoundaryWalls();
+  world.addDoor(0, 5, seedWorldIds.atelier, seedDoorRotations.west, "Atelier Nexus", ["west", "atelier"]);
+  world.addDoor(15, 5, seedWorldIds.garden, seedDoorRotations.east, "Garden Circuit", ["east", "garden"]);
+  world.addDoor(8, 0, seedWorldIds.forge, seedDoorRotations.north, "Forge Yard", ["north", "forge"]);
+  world.addVerticalWall(4, 2, 3);
+  world.addVerticalWall(4, 6, 7);
+  world.addVerticalWall(11, 2, 3);
+  world.addVerticalWall(11, 6, 7);
+  world.addHorizontalWall(4, 6, 10, [8]);
+  world.addSpawn(2, 5, ["market"]);
+  world.addPlayer("toon-blaster-runner", 2, 5, { rotation: 90, tags: ["player", "blaster", "market"] });
+  world.addEnemy("goblin-grunt-enemy", 12, 5, "enemy-melee", { rotation: 270, tags: ["enemy", "melee", "main-lane"] });
+  world.addEnemy("forest-ranger-npc", 13, 3, "enemy-ranged", { rotation: 270, tags: ["enemy", "ranged", "stall-roof"] });
+  world.addNeutral("village-market-stall", 5, 2, { rotation: 90, scale: 0.85, tags: ["market", "stall"] });
+  world.addNeutral("village-market-stall", 10, 2, { rotation: 270, scale: 0.85, tags: ["market", "stall"] });
+  world.addNeutral("village-market-stall", 5, 7, { rotation: 90, scale: 0.85, tags: ["market", "stall"] });
+  world.addNeutral("village-blacksmith-npc", 8, 5, { rotation: 180, tags: ["neutral", "blacksmith", "vendor"] });
+  world.addNeutral("tavern-wooden-table", 7, 7, { rotation: 90, scale: 0.86, tags: ["furniture", "market-table"] });
+  world.addNeutral("tavern-chair", 8, 7, { rotation: 270, scale: 0.82, tags: ["furniture", "seat"] });
+  world.addLight(2, 4, ["west-lane"]);
+  world.addLight(8, 3, ["center"]);
+  world.addLight(13, 6, ["east-lane"]);
+  return world.cells;
+}
+
+function createForgeYardCells() {
+  const world = createSeedWorldBuilder(14, 12);
+  world.addBoundaryWalls();
+  world.addDoor(13, 6, seedWorldIds.atelier, seedDoorRotations.east, "Atelier Nexus", ["east", "atelier"]);
+  world.addDoor(7, 11, seedWorldIds.market, seedDoorRotations.south, "Market Concourse", ["south", "market"]);
+  world.addDoor(0, 6, seedWorldIds.rift, seedDoorRotations.west, "Rift Arena", ["west", "rift"]);
+  world.addVerticalWall(4, 2, 9, [5, 6]);
+  world.addVerticalWall(9, 2, 9, [4, 6, 7]);
+  world.addHorizontalWall(3, 5, 8, [6]);
+  world.addHorizontalWall(8, 5, 8, [7]);
+  world.addSpawn(2, 6, ["forge"]);
+  world.addPlayer("village-blacksmith-npc", 2, 6, { rotation: 90, tags: ["player", "blacksmith", "forge"] });
+  world.addEnemy("goblin-grunt-enemy", 6, 6, "enemy-melee", { rotation: 270, tags: ["enemy", "melee", "anvil-lane"] });
+  world.addEnemy("goblin-grunt-enemy", 10, 8, "enemy-melee", { rotation: 270, tags: ["enemy", "melee", "yard"] });
+  world.addEnemy("forest-ranger-npc", 10, 3, "enemy-ranged", { rotation: 270, tags: ["enemy", "ranged", "upper-cover"] });
+  world.addNeutral("blacksmith-forge-workbench", 6, 5, { scale: 0.88, tags: ["forge", "workbench"] });
+  world.addNeutral("table", 2, 3, { rotation: 90, scale: 0.92, tags: ["furniture", "tool-table"] });
+  world.addNeutral("tavern-chair", 3, 3, { rotation: 270, scale: 0.78, tags: ["furniture", "seat"] });
+  world.addNeutral("violet-rift-portal", 2, 9, { scale: 0.72, tags: ["vfx", "rift-anchor"] });
+  world.addLight(2, 5, ["spawn"]);
+  world.addLight(6, 4, ["forge"]);
+  world.addLight(11, 7, ["yard"]);
+  return world.cells;
+}
+
+function createRiftArenaCells() {
+  const world = createSeedWorldBuilder(16, 12);
+  world.addBoundaryWalls();
+  world.addDoor(8, 11, seedWorldIds.atelier, seedDoorRotations.south, "Atelier Nexus", ["south", "atelier"]);
+  world.addDoor(0, 6, seedWorldIds.forge, seedDoorRotations.west, "Forge Yard", ["west", "forge"]);
+  world.addDoor(15, 6, seedWorldIds.garden, seedDoorRotations.east, "Garden Circuit", ["east", "garden"]);
+  world.addVerticalWall(5, 2, 4);
+  world.addVerticalWall(5, 8, 9);
+  world.addVerticalWall(10, 2, 4);
+  world.addVerticalWall(10, 8, 9);
+  world.addHorizontalWall(6, 3, 4);
+  world.addHorizontalWall(6, 11, 12);
+  world.addSpawn(8, 9, ["rift"]);
+  world.addPlayer("toon-blaster-runner", 8, 9, { rotation: 180, tags: ["player", "blaster", "arena"] });
+  world.addEnemy("goblin-grunt-enemy", 6, 5, "enemy-melee", { rotation: 135, tags: ["enemy", "melee", "left-center"] });
+  world.addEnemy("goblin-grunt-enemy", 10, 5, "enemy-melee", { rotation: 225, tags: ["enemy", "melee", "right-center"] });
+  world.addEnemy("forest-ranger-npc", 4, 2, "enemy-ranged", { rotation: 135, tags: ["enemy", "ranged", "left-perch"] });
+  world.addEnemy("forest-ranger-npc", 11, 2, "enemy-ranged", { rotation: 225, tags: ["enemy", "ranged", "right-perch"] });
+  world.addNeutral("violet-rift-portal", 8, 5, { scale: 0.9, tags: ["vfx", "centerpiece", "rift"] });
+  world.addNeutral("flower", 7, 5, { scale: 0.62, tags: ["botanical", "rift-flora"] });
+  world.addNeutral("flower", 9, 5, { scale: 0.62, tags: ["botanical", "rift-flora"] });
+  world.addLight(8, 4, ["portal"]);
+  world.addLight(3, 8, ["west-cover"]);
+  world.addLight(12, 8, ["east-cover"]);
+  return world.cells;
+}
+
+function createSeedWorldRecords() {
+  const createdAt = "2026-05-09T00:00:00.000Z";
+  const rules =
+    "Explore linked doors, keep the spawn character reachable, and use cover walls as navigation/combat structure.";
+  return [
+    createWorldRecord({
+      id: seedWorldIds.atelier,
+      createdAt,
+      meta: {
+        name: "Atelier Nexus",
+        theme: "studio-atrium",
+        columns: 14,
+        rows: 10,
+        cellSize: "1m",
+        rules: `${rules} This hub branches to every authored world.`,
+      },
+      cells: createAtelierNexusCells(),
+    }),
+    createWorldRecord({
+      id: seedWorldIds.garden,
+      createdAt,
+      meta: {
+        name: "Garden Circuit",
+        theme: "garden-room",
+        columns: 16,
+        rows: 12,
+        cellSize: "1m",
+        rules: `${rules} Hedge partitions should read as a looping botanical maze.`,
+      },
+      cells: createGardenCircuitCells(),
+    }),
+    createWorldRecord({
+      id: seedWorldIds.market,
+      createdAt,
+      meta: {
+        name: "Market Concourse",
+        theme: "studio-atrium",
+        columns: 16,
+        rows: 10,
+        cellSize: "1m",
+        rules: `${rules} Keep the central bazaar lane open between east and west doors.`,
+      },
+      cells: createMarketConcourseCells(),
+    }),
+    createWorldRecord({
+      id: seedWorldIds.forge,
+      createdAt,
+      meta: {
+        name: "Forge Yard",
+        theme: "training-floor",
+        columns: 14,
+        rows: 12,
+        cellSize: "1m",
+        rules: `${rules} Narrow lanes create short-range pressure around the forge bench.`,
+      },
+      cells: createForgeYardCells(),
+    }),
+    createWorldRecord({
+      id: seedWorldIds.rift,
+      createdAt,
+      meta: {
+        name: "Rift Arena",
+        theme: "toon-lab",
+        columns: 16,
+        rows: 12,
+        cellSize: "1m",
+        rules: `${rules} The arena is symmetric so ranged and melee enemies pressure the center portal.`,
+      },
+      cells: createRiftArenaCells(),
+    }),
+  ];
+}
+
+function getSeedWorldRecord(worldId) {
+  return createSeedWorldRecords().find((world) => world.id === worldId);
 }
 
 function resizeWorldCells(cells, columns, rows) {
   const next = {};
   Object.values(cells).forEach((cell) => {
-    if (cell.x < columns && cell.y < rows) {
-      next[getCellKey(cell.x, cell.y)] = cell;
-    }
+    const placements = getCellPlacements(cell);
+    placements.forEach((placement) => {
+      if (placement.x < columns && placement.y < rows) {
+        setCellLayer(next, placement);
+      }
+    });
   });
 
   const wall = findStructure("wall");
   for (let y = 0; y < rows; y += 1) {
     for (let x = 0; x < columns; x += 1) {
       const key = getCellKey(x, y);
-      if ((x === 0 || y === 0 || x === columns - 1 || y === rows - 1) && !next[key]) {
-        next[key] = createStructureCell(wall, x, y, { tags: ["boundary", "wall"] });
+      if ((x === 0 || y === 0 || x === columns - 1 || y === rows - 1) && !next[key]?.structure) {
+        setCellLayer(next, createStructureCell(wall, x, y, { tags: ["boundary", "wall"] }));
       }
     }
   }
   return next;
 }
 
-function normaliseImportedCell(placement) {
+function normaliseImportedPlacement(placement) {
   const x = Number(placement.x);
   const y = Number(placement.y);
   const overrides = {
@@ -300,6 +1032,8 @@ function normaliseImportedCell(placement) {
     elevation: Number(placement.elevation) || 0,
     tags: Array.isArray(placement.tags) ? placement.tags : [],
     notes: typeof placement.notes === "string" ? placement.notes : "",
+    combat: placement.combat,
+    targetWorldId: typeof placement.targetWorldId === "string" ? placement.targetWorldId : undefined,
   };
   if (placement.type === "asset") {
     return createAssetCell(findAsset(placement.itemId ?? placement.assetId), x, y, overrides);
@@ -307,10 +1041,184 @@ function normaliseImportedCell(placement) {
   return createStructureCell(findStructure(placement.itemId ?? placement.structureId), x, y, overrides);
 }
 
-function serializeWorld(meta, cells) {
-  const theme = worldThemes.find((item) => item.id === meta.theme) ?? worldThemes[0];
+function getSerializedWorldPlacements(cells) {
+  return Object.values(cells)
+    .flatMap(getCellPlacements)
+    .sort((a, b) => a.y - b.y || a.x - b.x || String(a.layer).localeCompare(String(b.layer)))
+    .map(({ type, layer, itemId, label, family, x, y, rotation, scale, elevation, tags, notes, agentHint, combat, targetWorldId }) => ({
+      type,
+      layer,
+      itemId,
+      label,
+      family,
+      x,
+      y,
+      rotation,
+      scale,
+      elevation,
+      tags,
+      notes,
+      agentHint,
+      ...(combat ? { combat } : {}),
+      ...(targetWorldId ? { targetWorldId } : {}),
+    }));
+}
+
+function createCellsFromPlacements(placements, columns, rows) {
+  const nextCells = {};
+  placements.forEach((placement) => {
+    const x = Number(placement.x);
+    const y = Number(placement.y);
+    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= columns || y >= rows) return;
+    setCellLayer(nextCells, normaliseImportedPlacement(placement));
+  });
+  return nextCells;
+}
+
+function normaliseWorldMeta(meta = {}) {
+  const theme = worldThemes.some((item) => item.id === meta.theme) ? meta.theme : defaultWorldMeta.theme;
   return {
-    schemaVersion: "artomata.world-grid.v1",
+    name: typeof meta.name === "string" && meta.name.trim() ? meta.name : defaultWorldMeta.name,
+    theme,
+    columns: clampGridValue(meta.columns ?? meta.grid?.columns ?? defaultWorldMeta.columns, 6, 16),
+    rows: clampGridValue(meta.rows ?? meta.grid?.rows ?? defaultWorldMeta.rows, 5, 12),
+    cellSize: typeof (meta.cellSize ?? meta.grid?.cellSize) === "string" ? meta.cellSize ?? meta.grid?.cellSize : defaultWorldMeta.cellSize,
+    rules: typeof meta.rules === "string" ? meta.rules : defaultWorldMeta.rules,
+  };
+}
+
+function createWorldId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `world-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createWorldRecord({ id = createWorldId(), meta = defaultWorldMeta, cells, placements, createdAt } = {}) {
+  const now = new Date().toISOString();
+  const normalisedMeta = normaliseWorldMeta(meta);
+  const sourceCells = Array.isArray(placements)
+    ? createCellsFromPlacements(placements, normalisedMeta.columns, normalisedMeta.rows)
+    : cells ?? createStarterWorldCells(normalisedMeta.columns, normalisedMeta.rows);
+  return {
+    id,
+    createdAt: createdAt ?? now,
+    updatedAt: now,
+    meta: normalisedMeta,
+    placements: getSerializedWorldPlacements(sourceCells),
+  };
+}
+
+function createInitialWorldLibrary() {
+  const worlds = createSeedWorldRecords();
+  return {
+    schemaVersion: worldLibrarySchemaVersion,
+    seedVersion: worldSeedVersion,
+    activeWorldId: worlds[0].id,
+    worlds,
+  };
+}
+
+function normaliseWorldRecord(record = {}) {
+  const meta = normaliseWorldMeta(record.meta ?? record);
+  const sourceCells = Array.isArray(record.placements)
+    ? createCellsFromPlacements(record.placements, meta.columns, meta.rows)
+    : createStarterWorldCells(meta.columns, meta.rows);
+  const createdAt = typeof record.createdAt === "string" ? record.createdAt : new Date().toISOString();
+  return {
+    id: typeof record.id === "string" && record.id ? record.id : createWorldId(),
+    createdAt,
+    updatedAt: typeof record.updatedAt === "string" ? record.updatedAt : createdAt,
+    meta,
+    placements: getSerializedWorldPlacements(sourceCells),
+  };
+}
+
+function ensureSeedWorlds(library) {
+  const storedSeedVersion = Number(library?.seedVersion) || 0;
+  if (storedSeedVersion >= worldSeedVersion) {
+    return { ...library, seedVersion: worldSeedVersion };
+  }
+  const existingIds = new Set(library.worlds.map((world) => world.id));
+  const missingSeeds = createSeedWorldRecords().filter((world) => !existingIds.has(world.id));
+  return {
+    ...library,
+    seedVersion: worldSeedVersion,
+    worlds: [...library.worlds, ...missingSeeds],
+  };
+}
+
+function normaliseWorldLibrary(library) {
+  const worldIds = new Set();
+  const worlds = (Array.isArray(library?.worlds) ? library.worlds : [])
+    .map(normaliseWorldRecord)
+    .map((record) => {
+      if (!worldIds.has(record.id)) {
+        worldIds.add(record.id);
+        return record;
+      }
+      const id = createWorldId();
+      worldIds.add(id);
+      return { ...record, id };
+    });
+  if (!worlds.length) return createInitialWorldLibrary();
+  const activeWorldId = worlds.some((world) => world.id === library?.activeWorldId)
+    ? library.activeWorldId
+    : worlds[0].id;
+  return ensureSeedWorlds({
+    schemaVersion: worldLibrarySchemaVersion,
+    seedVersion: Number(library?.seedVersion) || 0,
+    activeWorldId,
+    worlds,
+  });
+}
+
+function loadWorldLibrary() {
+  if (typeof window === "undefined") return createInitialWorldLibrary();
+  try {
+    const stored = window.localStorage.getItem(worldLibraryStorageKey);
+    if (!stored) return createInitialWorldLibrary();
+    return normaliseWorldLibrary(JSON.parse(stored));
+  } catch {
+    return createInitialWorldLibrary();
+  }
+}
+
+function saveWorldLibrary(library) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(worldLibraryStorageKey, JSON.stringify(library));
+  } catch {
+    // localStorage can be unavailable in private contexts; the in-memory library still works.
+  }
+}
+
+function getCellsFromWorldRecord(record) {
+  const meta = normaliseWorldMeta(record?.meta);
+  if (Array.isArray(record?.placements)) {
+    return createCellsFromPlacements(record.placements, meta.columns, meta.rows);
+  }
+  return createStarterWorldCells(meta.columns, meta.rows);
+}
+
+function getDefaultSelectedKey(cells) {
+  const starterKey = getCellKey(1, 1);
+  return cells[starterKey] ? starterKey : Object.keys(cells)[0] ?? null;
+}
+
+function getUniqueWorldName(baseName, worlds) {
+  const base = baseName.trim() || "Untitled World";
+  const existing = new Set(worlds.map((world) => world.meta.name));
+  if (!existing.has(base)) return base;
+  let index = 2;
+  while (existing.has(`${base} ${index}`)) index += 1;
+  return `${base} ${index}`;
+}
+
+function serializeWorld(meta, cells, worldId) {
+  const theme = worldThemes.find((item) => item.id === meta.theme) ?? worldThemes[0];
+  const placements = getSerializedWorldPlacements(cells);
+  return {
+    schemaVersion: "artomata.world-grid.v2",
+    ...(worldId ? { id: worldId } : {}),
     name: meta.name,
     theme: meta.theme,
     mood: theme.mood,
@@ -335,25 +1243,13 @@ function serializeWorld(meta, cells) {
         agentHint: item.agentHint,
       })),
     },
-    placements: Object.values(cells)
-      .sort((a, b) => a.y - b.y || a.x - b.x)
-      .map(({ type, itemId, label, family, x, y, rotation, scale, elevation, tags, notes, agentHint }) => ({
-        type,
-        itemId,
-        label,
-        family,
-        x,
-        y,
-        rotation,
-        scale,
-        elevation,
-        tags,
-        notes,
-        agentHint,
-      })),
+    placements,
     agentContract: {
-      oneOccupantPerCell: true,
+      oneStructureAndOneOccupantPerCell: true,
       validPlacementTypes: ["asset", "structure"],
+      validLayers: ["structure", "occupant"],
+      characterRoles: combatRoles.map((role) => role.id),
+      doorTargetField: "targetWorldId",
       preferredWorkflow: "Edit placements, keep x/y inside grid bounds, then import JSON through the World Creator panel.",
     },
   };
@@ -362,13 +1258,14 @@ function serializeWorld(meta, cells) {
 function buildAgentBrief(world) {
   const characterCount = world.placements.filter((item) => item.family === "Character").length;
   const structureCount = world.placements.filter((item) => item.type === "structure").length;
+  const enemyCount = world.placements.filter((item) => isEnemyRole(item.combat?.role)).length;
   return [
     `World: ${world.name}`,
     `Theme: ${world.theme} (${world.mood})`,
     `Grid: ${world.grid.columns} x ${world.grid.rows}, ${world.grid.cellSize} cells, coordinates are ${world.grid.coordinateSystem}.`,
-    `Current contents: ${world.placements.length} placements, ${characterCount} character placement(s), ${structureCount} structure placement(s).`,
+    `Current contents: ${world.placements.length} placements, ${characterCount} character placement(s), ${enemyCount} enemy placement(s), ${structureCount} structure placement(s).`,
     `Rules: ${world.rules}`,
-    "Agent task contract: use itemId values from the palette, place at integer x/y coordinates inside the grid, use rotation in 90-degree increments when possible, add tags and notes for generation intent, and keep one occupant per cell.",
+    "Agent task contract: use itemId values from the palette, place at integer x/y coordinates inside the grid, use structure and occupant layers for shared cells, assign character combat.role when needed, use rotation in 90-degree increments when possible, and add tags and notes for generation intent.",
   ].join("\n");
 }
 
@@ -377,18 +1274,23 @@ function validateWorld(world) {
   const hasCharacter = placements.some((item) => item.family === "Character");
   const hasEntry = placements.some((item) => item.itemId === "door" || item.itemId === "spawn");
   const hasStructure = placements.some((item) => item.type === "structure");
+  const spawnKeys = new Set(placements.filter((item) => item.itemId === "spawn").map((item) => getCellKey(item.x, item.y)));
+  const hasControllableSpawn = placements.some(
+    (item) => item.family === "Character" && item.combat?.role !== "enemy-melee" && item.combat?.role !== "enemy-ranged" && spawnKeys.has(getCellKey(item.x, item.y)),
+  );
   const occupiedKeys = new Set();
   let duplicate = false;
   placements.forEach((item) => {
-    const key = getCellKey(item.x, item.y);
+    const key = `${getCellKey(item.x, item.y)}:${item.layer ?? item.type}`;
     if (occupiedKeys.has(key)) duplicate = true;
     occupiedKeys.add(key);
   });
   return [
     { ok: hasCharacter, label: "Character anchor", detail: hasCharacter ? "Ready" : "Place at least one character asset." },
+    { ok: hasControllableSpawn, label: "Playable spawn", detail: hasControllableSpawn ? "Ready" : "Layer a non-enemy character on a spawn tile." },
     { ok: hasEntry, label: "Entry point", detail: hasEntry ? "Ready" : "Add a door or spawn tile." },
     { ok: hasStructure, label: "Room structure", detail: hasStructure ? "Ready" : "Add walls, floors, lights, or spawn markers." },
-    { ok: !duplicate, label: "Cell uniqueness", detail: duplicate ? "Resolve duplicate coordinates." : "Ready" },
+    { ok: !duplicate, label: "Layer uniqueness", detail: duplicate ? "Resolve duplicate coordinates on the same layer." : "Ready" },
   ];
 }
 
@@ -468,6 +1370,95 @@ function getWorldSpawnPose(world) {
   };
 }
 
+function getWorldCellFromPosition(position, world, cellSize) {
+  const { columns, rows } = getWorldDimensions(world);
+  const x = Math.round(position.x / cellSize + (columns - 1) / 2);
+  const y = Math.round(position.z / cellSize + (rows - 1) / 2);
+  if (x < 0 || y < 0 || x >= columns || y >= rows) return null;
+  return { x, y, key: getCellKey(x, y) };
+}
+
+function getWorldPlayablePlacement(world) {
+  const spawnKeys = new Set(world.placements.filter((placement) => placement.itemId === "spawn").map((placement) => getCellKey(placement.x, placement.y)));
+  return world.placements.find(
+    (placement) =>
+      placement.type === "asset" &&
+      placement.family === "Character" &&
+      !isEnemyRole(placement.combat?.role) &&
+      spawnKeys.has(getCellKey(placement.x, placement.y)),
+  );
+}
+
+function getGridNeighbors(cellKey, world, solidKeys) {
+  const { columns, rows } = getWorldDimensions(world);
+  const [x, y] = cellKey.split(":").map(Number);
+  return [
+    [x + 1, y],
+    [x - 1, y],
+    [x, y + 1],
+    [x, y - 1],
+  ]
+    .filter(([nextX, nextY]) => nextX >= 0 && nextY >= 0 && nextX < columns && nextY < rows)
+    .map(([nextX, nextY]) => getCellKey(nextX, nextY))
+    .filter((key) => !solidKeys.has(key));
+}
+
+function findWorldPath(startKey, goalKey, world, solidKeys) {
+  if (!startKey || !goalKey || startKey === goalKey || solidKeys.has(goalKey)) return [];
+  const [goalX, goalY] = goalKey.split(":").map(Number);
+  const open = new Set([startKey]);
+  const cameFrom = new Map();
+  const gScore = new Map([[startKey, 0]]);
+  const fScore = new Map([[startKey, 0]]);
+
+  function heuristic(key) {
+    const [x, y] = key.split(":").map(Number);
+    return Math.abs(goalX - x) + Math.abs(goalY - y);
+  }
+
+  while (open.size) {
+    let current = null;
+    let best = Infinity;
+    open.forEach((key) => {
+      const score = fScore.get(key) ?? Infinity;
+      if (score < best) {
+        best = score;
+        current = key;
+      }
+    });
+    if (current === goalKey) {
+      const path = [current];
+      while (cameFrom.has(current)) {
+        current = cameFrom.get(current);
+        path.unshift(current);
+      }
+      return path.slice(1);
+    }
+    open.delete(current);
+    getGridNeighbors(current, world, solidKeys).forEach((neighbor) => {
+      const tentative = (gScore.get(current) ?? Infinity) + 1;
+      if (tentative >= (gScore.get(neighbor) ?? Infinity)) return;
+      cameFrom.set(neighbor, current);
+      gScore.set(neighbor, tentative);
+      fScore.set(neighbor, tentative + heuristic(neighbor));
+      open.add(neighbor);
+    });
+  }
+  return [];
+}
+
+function hasWorldLineOfSight(start, end, world, solidKeys, cellSize) {
+  const distance = start.distanceTo(end);
+  const steps = Math.max(2, Math.ceil(distance / (cellSize * 0.35)));
+  for (let index = 1; index < steps; index += 1) {
+    const alpha = index / steps;
+    const sample = start.clone().lerp(end, alpha);
+    const cell = getWorldCellFromPosition(sample, world, cellSize);
+    if (!cell || solidKeys.has(cell.key)) return false;
+  }
+  return true;
+}
+
 function setWorldCameraPose(camera, world) {
   const pose = getWorldSpawnPose(world);
   camera.position.copy(pose.position);
@@ -498,7 +1489,7 @@ function loadWorldAsset(loader, asset) {
           material.needsUpdate = true;
         });
       });
-      return model;
+      return { model, animations: gltf.animations || [] };
     });
     worldAssetCache.set(asset.modelUrl, assetPromise);
   }
@@ -827,7 +1818,7 @@ function SceneViewport({ asset, activeClipName, autoSpin, exposure, mode, onLoad
   return <div className="viewport" ref={mountRef} aria-label={`${asset.name} interactive 3D model viewport`} />;
 }
 
-function WorldViewport({ world }) {
+function WorldViewportLegacy({ world }) {
   const mountRef = useRef(null);
   const stateRef = useRef({
     renderer: null,
@@ -1159,6 +2150,7 @@ function WorldViewport({ world }) {
     const renderer = stateRef.current.renderer;
     const mount = mountRef.current;
     if (!renderer || !mount) return;
+    stateRef.current.gameActive = true;
     const shell = mount.parentElement;
     if (shell?.requestFullscreen && !document.fullscreenElement && window.innerWidth >= 900) {
       await shell.requestFullscreen().catch(() => undefined);
@@ -1168,6 +2160,8 @@ function WorldViewport({ world }) {
   }
 
   async function exitWorld() {
+    stateRef.current.gameActive = false;
+    stateRef.current.keys?.clear?.();
     if (document.pointerLockElement) document.exitPointerLock?.();
     if (document.fullscreenElement === mountRef.current?.parentElement) {
       await document.exitFullscreen?.().catch(() => undefined);
@@ -1192,7 +2186,7 @@ function WorldViewport({ world }) {
             <DoorOpen aria-hidden="true" />
             <span>Enter World</span>
           </button>
-          <button type="button" onClick={exitWorld} disabled={!exploring}>
+          <button type="button" onClick={exitWorld} disabled={!exploring && !hudState.gameActive}>
             <Pause aria-hidden="true" />
             <span>Exit</span>
           </button>
@@ -1205,6 +2199,1095 @@ function WorldViewport({ world }) {
           <span>
             <Box aria-hidden="true" />
             {worldStatus}
+          </span>
+          <span>
+            <Package aria-hidden="true" />
+            {world.placements.length}
+          </span>
+          <span>
+            <Grid2X2 aria-hidden="true" />
+            {columns} x {rows}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WorldViewport({ world, worldTargets = [], onTravel }) {
+  const mountRef = useRef(null);
+  const stateRef = useRef({
+    renderer: null,
+    camera: null,
+    world,
+    solidKeys: new Set(),
+    cellSize: 1,
+    keys: new Set(),
+    pointerLocked: false,
+    gameActive: false,
+    controlMode: "free",
+    yaw: 0,
+    pitch: -0.18,
+    player: null,
+    enemies: [],
+    entities: [],
+    projectiles: [],
+    cooldowns: { primary: 0, secondary: 0, special: 0 },
+    cooldownMax: { primary: 1, secondary: 1, special: 1 },
+    downedTimer: 0,
+    resetSpawn: null,
+    nearbyDoor: null,
+    nearbyDoorKey: "",
+  });
+  const [worldStatus, setWorldStatus] = useState("Building world");
+  const [assetProgress, setAssetProgress] = useState({ loaded: 0, total: 0 });
+  const [exploring, setExploring] = useState(false);
+  const [hudState, setHudState] = useState({
+    controlMode: "free",
+    gameActive: false,
+    label: "Free camera",
+    playerName: "",
+    health: 0,
+    maxHealth: 0,
+    enemiesAlive: 0,
+    enemyHealth: 0,
+    cooldowns: { primary: 0, secondary: 0, special: 0 },
+  });
+  const [doorPrompt, setDoorPrompt] = useState(null);
+  const { columns, rows } = getWorldDimensions(world);
+  const worldReady = worldStatus === "Ready" || worldStatus === "Ready with asset issue";
+
+  const requestDoorTravel = useCallback(
+    async (targetWorldId) => {
+      if (!targetWorldId) return;
+      if (document.pointerLockElement) document.exitPointerLock?.();
+      if (document.fullscreenElement === mountRef.current?.parentElement) {
+        await document.exitFullscreen?.().catch(() => undefined);
+      }
+      const targetName = worldTargets.find((target) => target.id === targetWorldId)?.name;
+      onTravel?.(targetWorldId, targetName ? `Entered ${targetName}` : "Entered linked world");
+    },
+    [onTravel, worldTargets],
+  );
+
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return undefined;
+
+    let disposed = false;
+    const resources = [];
+    const { columns: worldColumns, rows: worldRows, cellSize } = getWorldDimensions(world);
+    const solidKeys = getWorldSolidKeys(world);
+    const targetNameById = new Map(worldTargets.map((target) => [target.id, target.name]));
+    const travelDoors = world.placements
+      .filter((placement) => placement.type === "structure" && placement.itemId === "door" && placement.targetWorldId && targetNameById.has(placement.targetWorldId))
+      .map((placement) => ({
+        placement,
+        key: `${placement.x}:${placement.y}:${placement.targetWorldId}`,
+        targetWorldId: placement.targetWorldId,
+        targetName: targetNameById.get(placement.targetWorldId),
+        position: getWorldCellCenter(placement.x, placement.y, world, placement.elevation),
+      }));
+    const playablePlacement = getWorldPlayablePlacement(world);
+    const playableKey = playablePlacement ? `${playablePlacement.itemId}:${playablePlacement.x}:${playablePlacement.y}` : "";
+    const scene = new THREE.Scene();
+    const clock = new THREE.Clock();
+    scene.background = createGradientTexture("#213033", "#060809");
+    scene.fog = new THREE.Fog("#060809", cellSize * 9, cellSize * 26);
+    resources.push(scene.background);
+
+    const spawnPose = getWorldSpawnPose(world);
+    const camera = new THREE.PerspectiveCamera(70, mount.clientWidth / mount.clientHeight, 0.04, 120);
+    camera.rotation.order = "YXZ";
+    setWorldCameraPose(camera, world);
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      powerPreference: "high-performance",
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(Math.max(1, mount.clientWidth), Math.max(1, mount.clientHeight));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    mount.appendChild(renderer.domElement);
+
+    const hemi = new THREE.HemisphereLight("#fff8e8", "#132223", 1.1);
+    const sun = new THREE.DirectionalLight("#ffe2bf", 2.15);
+    sun.position.set(-4.2, 7.8, 4.8);
+    const fill = new THREE.DirectionalLight("#86e6ec", 0.92);
+    fill.position.set(5.5, 3.4, -5.2);
+    scene.add(hemi, sun, fill);
+
+    function track(resource) {
+      resources.push(resource);
+      return resource;
+    }
+
+    const floorGeometry = track(new THREE.BoxGeometry(cellSize * 0.96, cellSize * 0.08, cellSize * 0.96));
+    const floorMaterial = track(new THREE.MeshStandardMaterial({ color: "#253f3d", roughness: 0.82, metalness: 0.02 }));
+    const floorMesh = new THREE.InstancedMesh(floorGeometry, floorMaterial, worldColumns * worldRows);
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3(1, 1, 1);
+    let floorIndex = 0;
+    for (let y = 0; y < worldRows; y += 1) {
+      for (let x = 0; x < worldColumns; x += 1) {
+        position.copy(getWorldCellCenter(x, y, world, -cellSize * 0.04));
+        matrix.compose(position, quaternion, scale);
+        floorMesh.setMatrixAt(floorIndex, matrix);
+        floorIndex += 1;
+      }
+    }
+    floorMesh.instanceMatrix.needsUpdate = true;
+    scene.add(floorMesh);
+
+    const gridSize = Math.max(worldColumns, worldRows) * cellSize;
+    const gridHelper = new THREE.GridHelper(gridSize, Math.max(worldColumns, worldRows), "#426261", "#253636");
+    gridHelper.position.y = cellSize * 0.025;
+    gridHelper.position.x = ((worldColumns % 2) * cellSize) / 2 - cellSize / 2;
+    gridHelper.position.z = ((worldRows % 2) * cellSize) / 2 - cellSize / 2;
+    resources.push(gridHelper.geometry, gridHelper.material);
+    scene.add(gridHelper);
+
+    const wallPlacements = world.placements.filter((placement) => placement.type === "structure" && placement.itemId === "wall");
+    if (wallPlacements.length) {
+      const wallGeometry = track(new THREE.BoxGeometry(cellSize * 0.95, cellSize * 1.95, cellSize * 0.95));
+      const wallMaterial = track(new THREE.MeshStandardMaterial({ color: "#d6c28d", roughness: 0.76, metalness: 0.04 }));
+      const wallMesh = new THREE.InstancedMesh(wallGeometry, wallMaterial, wallPlacements.length);
+      wallPlacements.forEach((placement, index) => {
+        position.copy(getWorldCellCenter(placement.x, placement.y, world, placement.elevation));
+        position.y += cellSize * 0.975;
+        matrix.compose(position, quaternion, new THREE.Vector3(placement.scale ?? 1, 1, placement.scale ?? 1));
+        wallMesh.setMatrixAt(index, matrix);
+      });
+      wallMesh.instanceMatrix.needsUpdate = true;
+      scene.add(wallMesh);
+    }
+
+    const floorPlacements = world.placements.filter((placement) => placement.type === "structure" && placement.itemId === "floor");
+    if (floorPlacements.length) {
+      const accentFloorGeometry = track(new THREE.BoxGeometry(cellSize * 0.82, cellSize * 0.09, cellSize * 0.82));
+      const accentFloorMaterial = track(new THREE.MeshStandardMaterial({ color: "#315755", roughness: 0.74, metalness: 0.03 }));
+      const accentFloorMesh = new THREE.InstancedMesh(accentFloorGeometry, accentFloorMaterial, floorPlacements.length);
+      floorPlacements.forEach((placement, index) => {
+        position.copy(getWorldCellCenter(placement.x, placement.y, world, (placement.elevation || 0) + cellSize * 0.02));
+        matrix.compose(position, quaternion, new THREE.Vector3(placement.scale ?? 1, 1, placement.scale ?? 1));
+        accentFloorMesh.setMatrixAt(index, matrix);
+      });
+      accentFloorMesh.instanceMatrix.needsUpdate = true;
+      scene.add(accentFloorMesh);
+    }
+
+    const doorMaterial = track(new THREE.MeshStandardMaterial({ color: "#f47d69", roughness: 0.58, metalness: 0.02 }));
+    const doorPostGeometry = track(new THREE.BoxGeometry(cellSize * 0.14, cellSize * 1.45, cellSize * 0.16));
+    const doorBeamGeometry = track(new THREE.BoxGeometry(cellSize * 0.9, cellSize * 0.16, cellSize * 0.18));
+    world.placements
+      .filter((placement) => placement.type === "structure" && placement.itemId === "door")
+      .forEach((placement) => {
+        const group = new THREE.Group();
+        const base = getWorldCellCenter(placement.x, placement.y, world, placement.elevation);
+        group.position.copy(base);
+        group.rotation.y = THREE.MathUtils.degToRad(Number(placement.rotation) || 0);
+        [
+          [-cellSize * 0.38, cellSize * 0.72, 0, doorPostGeometry],
+          [cellSize * 0.38, cellSize * 0.72, 0, doorPostGeometry],
+          [0, cellSize * 1.45, 0, doorBeamGeometry],
+        ].forEach(([x, y, z, geometry]) => {
+          const mesh = new THREE.Mesh(geometry, doorMaterial);
+          mesh.position.set(x, y, z);
+          group.add(mesh);
+        });
+        scene.add(group);
+      });
+
+    const markerGeometry = track(new THREE.BoxGeometry(cellSize * 0.28, cellSize * 0.28, cellSize * 0.28));
+    const lightMaterial = track(new THREE.MeshStandardMaterial({ color: "#28e0ea", emissive: "#28e0ea", emissiveIntensity: 1.55 }));
+    world.placements
+      .filter((placement) => placement.type === "structure" && placement.itemId === "light")
+      .forEach((placement, index) => {
+        const lightMarker = new THREE.Mesh(markerGeometry, lightMaterial);
+        lightMarker.position.copy(getWorldCellCenter(placement.x, placement.y, world, placement.elevation));
+        lightMarker.position.y += cellSize * 1.22;
+        scene.add(lightMarker);
+        if (index < 4) {
+          const point = new THREE.PointLight("#76f8ff", 1.15, cellSize * 5.5, 1.7);
+          point.position.copy(lightMarker.position);
+          scene.add(point);
+        }
+      });
+
+    const spawnGeometry = track(new THREE.BoxGeometry(cellSize * 0.62, cellSize * 0.1, cellSize * 0.62));
+    const spawnMaterial = track(new THREE.MeshStandardMaterial({ color: "#91f0a8", emissive: "#2c8c52", emissiveIntensity: 0.38 }));
+    world.placements
+      .filter((placement) => placement.type === "structure" && placement.itemId === "spawn")
+      .forEach((placement) => {
+        const spawnPad = new THREE.Mesh(spawnGeometry, spawnMaterial);
+        spawnPad.position.copy(getWorldCellCenter(placement.x, placement.y, world, (placement.elevation || 0) + cellSize * 0.04));
+        spawnPad.rotation.y = THREE.MathUtils.degToRad(Number(placement.rotation) || 0);
+        scene.add(spawnPad);
+      });
+
+    const assetGroup = new THREE.Group();
+    scene.add(assetGroup);
+    const healthBarGroup = new THREE.Group();
+    scene.add(healthBarGroup);
+    const projectileGroup = new THREE.Group();
+    scene.add(projectileGroup);
+
+    const healthBackMaterial = track(new THREE.MeshBasicMaterial({ color: "#1b2022", transparent: true, opacity: 0.82, depthTest: false }));
+    const healthFillMaterial = track(new THREE.MeshBasicMaterial({ color: "#91f0a8", transparent: true, opacity: 0.95, depthTest: false }));
+    const healthEnemyMaterial = track(new THREE.MeshBasicMaterial({ color: "#f47d69", transparent: true, opacity: 0.95, depthTest: false }));
+    const healthPlaneGeometry = track(new THREE.PlaneGeometry(1, 0.1));
+    const projectileGeometry = track(new THREE.SphereGeometry(cellSize * 0.07, 10, 10));
+    const playerProjectileMaterial = track(new THREE.MeshBasicMaterial({ color: "#28e0ea" }));
+    const enemyProjectileMaterial = track(new THREE.MeshBasicMaterial({ color: "#f47d69" }));
+    const hitGeometry = track(new THREE.SphereGeometry(cellSize * 0.16, 12, 12));
+    const hitMaterial = track(new THREE.MeshBasicMaterial({ color: "#fff1b8", transparent: true, opacity: 0.58 }));
+
+    const current = {
+      renderer,
+      camera,
+      world,
+      solidKeys,
+      cellSize,
+      keys: new Set(),
+      pointerLocked: false,
+      gameActive: false,
+      controlMode: playablePlacement ? "character" : "free",
+      yaw: spawnPose.yaw,
+      pitch: -0.18,
+      player: null,
+      enemies: [],
+      entities: [],
+      projectiles: [],
+      effects: [],
+      cooldowns: { primary: 0, secondary: 0, special: 0 },
+      cooldownMax: { primary: 1, secondary: 1, special: 1 },
+      downedTimer: 0,
+      animationId: 0,
+      lastHudAt: 0,
+      resetSpawn: null,
+      nearbyDoor: null,
+      nearbyDoorKey: "",
+    };
+    stateRef.current = current;
+
+    function publishHud(force = false) {
+      const now = performance.now();
+      if (!force && now - current.lastHudAt < 120) return;
+      current.lastHudAt = now;
+      const player = current.player;
+      const playerName = player?.asset.shortName ?? "";
+      const cooldowns = Object.fromEntries(
+        Object.entries(current.cooldowns).map(([key, value]) => [key, Math.max(0, Number(value.toFixed(1)))]),
+      );
+      setHudState({
+        controlMode: current.controlMode,
+        gameActive: current.gameActive,
+        label:
+          current.controlMode === "character" && player
+            ? current.gameActive
+              ? `Controlling ${playerName}`
+              : `Ready to enter ${playerName}`
+            : "Free camera",
+        playerName,
+        health: player ? Math.max(0, Math.round(player.health)) : 0,
+        maxHealth: player ? player.maxHealth : 0,
+        enemiesAlive: current.enemies.filter((enemy) => enemy.alive).length,
+        enemyHealth: Math.round(current.enemies.reduce((total, enemy) => total + (enemy.alive ? enemy.health : 0), 0)),
+        cooldowns,
+      });
+    }
+
+    function getTravelAnchorPosition() {
+      if (current.controlMode === "character" && current.player?.group) {
+        return current.player.group.position;
+      }
+      return camera.position;
+    }
+
+    function updateNearbyDoorPrompt() {
+      if (!travelDoors.length) {
+        if (current.nearbyDoorKey) {
+          current.nearbyDoor = null;
+          current.nearbyDoorKey = "";
+          setDoorPrompt(null);
+        }
+        return;
+      }
+      const anchor = getTravelAnchorPosition();
+      const nearestDoor = travelDoors
+        .map((door) => {
+          const dx = door.position.x - anchor.x;
+          const dz = door.position.z - anchor.z;
+          return { ...door, distance: Math.hypot(dx, dz) };
+        })
+        .filter((door) => door.distance <= cellSize * 1.12)
+        .sort((a, b) => a.distance - b.distance)[0];
+      const nextKey = nearestDoor?.key ?? "";
+      if (nextKey === current.nearbyDoorKey) return;
+      current.nearbyDoor = nearestDoor ?? null;
+      current.nearbyDoorKey = nextKey;
+      setDoorPrompt(
+        nearestDoor
+          ? {
+              targetWorldId: nearestDoor.targetWorldId,
+              targetName: nearestDoor.targetName,
+            }
+          : null,
+      );
+    }
+
+    function playEntityClip(entity, preferredName, fadeDuration = 0.12) {
+      if (!entity.mixer || !entity.animations.length) return;
+      const fallbackName = entity.alive
+        ? entity.asset.defaultAnimation || entity.animations[0]?.name
+        : "Death";
+      const clip =
+        entity.animations.find((item) => item.name === preferredName) ??
+        entity.animations.find((item) => item.name === fallbackName) ??
+        entity.animations[0];
+      if (!clip) return;
+      const nextAction = entity.mixer.clipAction(clip, entity.group);
+      const oneShot = /Attack|Shoot|Draw|Hammer|Hit|Death|Release|Slam/i.test(clip.name);
+      if (!oneShot && entity.activeClipName === clip.name) return;
+      if (entity.activeAction) entity.activeAction.fadeOut(fadeDuration);
+      nextAction.reset();
+      nextAction.setLoop(oneShot ? THREE.LoopOnce : THREE.LoopRepeat, oneShot ? 1 : Infinity);
+      nextAction.clampWhenFinished = oneShot;
+      nextAction.fadeIn(fadeDuration).play();
+      entity.activeAction = nextAction;
+      entity.activeClipName = clip.name;
+    }
+
+    function createHealthBar(entity) {
+      const group = new THREE.Group();
+      const back = new THREE.Mesh(healthPlaneGeometry, healthBackMaterial);
+      const fill = new THREE.Mesh(healthPlaneGeometry, isEnemyRole(entity.role) ? healthEnemyMaterial : healthFillMaterial);
+      back.renderOrder = 20;
+      fill.renderOrder = 21;
+      fill.position.z = 0.002;
+      group.add(back, fill);
+      group.scale.set(cellSize * 0.78, cellSize * 0.78, cellSize * 0.78);
+      healthBarGroup.add(group);
+      return { group, fill };
+    }
+
+    function updateHealthBar(entity) {
+      if (!entity.healthBar) return;
+      const ratio = Math.max(0, Math.min(1, entity.health / entity.maxHealth));
+      entity.healthBar.group.visible = entity.alive && ratio > 0;
+      entity.healthBar.fill.scale.x = ratio;
+      entity.healthBar.fill.position.x = -(1 - ratio) / 2;
+      entity.healthBar.group.position.copy(entity.group.position);
+      entity.healthBar.group.position.y += cellSize * 1.72;
+      entity.healthBar.group.lookAt(camera.position);
+    }
+
+    function spawnHitEffect(worldPosition, color = "#fff1b8") {
+      const material = hitMaterial.clone();
+      material.color.set(color);
+      const mesh = new THREE.Mesh(hitGeometry, material);
+      mesh.position.copy(worldPosition);
+      mesh.position.y += cellSize * 0.75;
+      scene.add(mesh);
+      current.effects.push({ mesh, material, ttl: 0.35, maxTtl: 0.35 });
+    }
+
+    function applyDamage(entity, amount) {
+      if (!entity?.alive || amount <= 0) return;
+      entity.health = Math.max(0, entity.health - amount);
+      spawnHitEffect(entity.group.position, entity.kind === "player" ? "#f47d69" : "#fff1b8");
+      if (entity.health <= 0) {
+        entity.alive = false;
+        if (entity.kind === "player") {
+          current.downedTimer = 1.15;
+          playEntityClip(entity, "Hit_Reaction");
+        } else {
+          playEntityClip(entity, "Death");
+          entity.deathTimer = 0.85;
+        }
+      } else {
+        playEntityClip(entity, "Hit_Reaction");
+      }
+      updateHealthBar(entity);
+      publishHud(true);
+    }
+
+    function spawnProjectile({ owner, target, direction, damage, color, speed, range }) {
+      const mesh = new THREE.Mesh(projectileGeometry, owner === "player" ? playerProjectileMaterial : enemyProjectileMaterial);
+      const source = owner === "player" ? current.player : owner;
+      const start = source.group.position.clone();
+      start.y += cellSize * 0.85;
+      mesh.position.copy(start);
+      projectileGroup.add(mesh);
+      const targetPosition = target?.group?.position?.clone() ?? start.clone().add(direction.clone().multiplyScalar(range));
+      targetPosition.y += cellSize * 0.65;
+      const velocity = targetPosition.sub(start).normalize().multiplyScalar((speed ?? 7) * cellSize);
+      current.projectiles.push({
+        mesh,
+        owner,
+        target,
+        damage,
+        velocity,
+        ttl: Math.max(0.35, (range ?? 5) / (speed ?? 7)),
+      });
+    }
+
+    function removeProjectile(projectile) {
+      projectileGroup.remove(projectile.mesh);
+    }
+
+    function findAttackTargets(attack, origin, direction) {
+      const range = (attack.range ?? current.player.stats.range) * cellSize;
+      return current.enemies
+        .filter((enemy) => enemy.alive)
+        .map((enemy) => {
+          const toEnemy = enemy.group.position.clone().sub(origin);
+          const distance = toEnemy.length();
+          const alignment = distance > 0 ? toEnemy.clone().normalize().dot(direction) : 1;
+          return { enemy, distance, alignment };
+        })
+        .filter(({ enemy, distance, alignment }) => {
+          if (distance > range) return false;
+          if (attack.type === "burst") return true;
+          if (attack.type === "melee") return alignment > -0.15;
+          return hasWorldLineOfSight(origin, enemy.group.position, world, solidKeys, cellSize);
+        })
+        .sort((a, b) => b.alignment - a.alignment || a.distance - b.distance);
+    }
+
+    function performPlayerAttack(slot) {
+      const player = current.player;
+      if (!player?.alive || current.downedTimer > 0 || current.cooldowns[slot] > 0) return;
+      const slotIndex = slot === "secondary" ? 1 : slot === "special" ? 2 : 0;
+      const attack =
+        player.attacks[slotIndex] ??
+        player.attacks[0] ?? {
+          label: "Strike",
+          type: "melee",
+          damage: player.stats.damage,
+          range: player.stats.range,
+          cooldown: player.stats.cooldown,
+        };
+      current.cooldowns[slot] = attack.cooldown ?? player.stats.cooldown;
+      current.cooldownMax[slot] = current.cooldowns[slot];
+      playEntityClip(player, attack.clip);
+
+      const direction = new THREE.Vector3(Math.sin(current.yaw), 0, -Math.cos(current.yaw)).normalize();
+      if (attack.type === "dash") {
+        const next = player.group.position.clone().add(direction.multiplyScalar((attack.range ?? 1.2) * cellSize));
+        if (canOccupyWorldPosition(next, world, solidKeys, cellSize)) player.group.position.copy(next);
+        publishHud(true);
+        return;
+      }
+      if (attack.type === "guard") {
+        player.health = Math.min(player.maxHealth, player.health + player.maxHealth * 0.08);
+        publishHud(true);
+        return;
+      }
+
+      const targets = findAttackTargets(attack, player.group.position, direction);
+      if (attack.type === "ranged") {
+        const target = targets[0]?.enemy;
+        if (target) {
+          spawnProjectile({
+            owner: "player",
+            target,
+            direction,
+            damage: attack.damage ?? player.stats.damage,
+            speed: attack.projectileSpeed ?? 7,
+            range: attack.range ?? player.stats.range,
+          });
+        }
+      } else {
+        const affected = attack.type === "burst" ? targets : targets.slice(0, 2);
+        affected.forEach(({ enemy }) => applyDamage(enemy, attack.damage ?? player.stats.damage));
+      }
+      publishHud(true);
+    }
+
+    function resetEncounter() {
+      if (current.controlMode === "free") {
+        setWorldCameraPose(camera, world);
+        current.yaw = getWorldSpawnPose(world).yaw;
+      }
+      current.projectiles.forEach(removeProjectile);
+      current.projectiles = [];
+      current.effects.forEach((effect) => {
+        scene.remove(effect.mesh);
+        effect.material.dispose();
+      });
+      current.effects = [];
+      current.entities.forEach((entity) => {
+        entity.group.visible = true;
+        entity.group.position.copy(entity.initialPosition);
+        entity.group.rotation.y = entity.initialYaw;
+        entity.health = entity.maxHealth;
+        entity.alive = true;
+        entity.deathTimer = 0;
+        entity.attackCooldown = 0;
+        entity.path = [];
+        entity.pathCooldown = 0;
+        playEntityClip(entity, entity.asset.defaultAnimation);
+        updateHealthBar(entity);
+      });
+      current.cooldowns = { primary: 0, secondary: 0, special: 0 };
+      current.downedTimer = 0;
+      publishHud(true);
+    }
+
+    current.resetSpawn = resetEncounter;
+
+    const loader = new GLTFLoader();
+    const assetPlacements = world.placements.filter((placement) => placement.type === "asset");
+    setAssetProgress({ loaded: 0, total: assetPlacements.length });
+    setWorldStatus(assetPlacements.length ? "Loading assets" : "Ready");
+    Promise.all(
+      assetPlacements.map(async (placement) => {
+        const asset = findAsset(placement.itemId);
+        const baseAsset = await loadWorldAsset(loader, asset);
+        if (disposed) return null;
+        const model = cloneModel(baseAsset.model);
+        model.position.copy(getWorldCellCenter(placement.x, placement.y, world, placement.elevation));
+        model.rotation.y += THREE.MathUtils.degToRad(Number(placement.rotation) || 0);
+        model.scale.multiplyScalar(getAssetFitScale(asset, cellSize) * (Number(placement.scale) || 1));
+        model.name = `World_${asset.id}_${placement.x}_${placement.y}`;
+        assetGroup.add(model);
+
+        const role = placement.combat?.role ?? asset.combat?.role ?? "neutral";
+        const stats = getResolvedCombatStats(asset, placement.combat);
+        const placementKey = `${placement.itemId}:${placement.x}:${placement.y}`;
+        const entity = {
+          id: placementKey,
+          placement,
+          asset,
+          group: model,
+          initialPosition: model.position.clone(),
+          initialYaw: model.rotation.y,
+          mixer: baseAsset.animations.length ? new THREE.AnimationMixer(model) : null,
+          animations: baseAsset.animations,
+          activeAction: null,
+          activeClipName: "",
+          role,
+          kind: placementKey === playableKey ? "player" : isEnemyRole(role) ? "enemy" : "neutral",
+          stats,
+          attacks: asset.combat?.attacks ?? [],
+          health: stats.maxHealth,
+          maxHealth: stats.maxHealth,
+          alive: true,
+          deathTimer: 0,
+          attackCooldown: 0,
+          path: [],
+          pathCooldown: 0,
+          healthBar: null,
+        };
+        current.entities.push(entity);
+        if (entity.kind === "player") current.player = entity;
+        if (entity.kind === "enemy") {
+          entity.healthBar = createHealthBar(entity);
+          current.enemies.push(entity);
+        }
+        playEntityClip(entity, asset.defaultAnimation, 0);
+        updateHealthBar(entity);
+        setAssetProgress((progress) => ({ ...progress, loaded: Math.min(progress.total, progress.loaded + 1) }));
+        return entity;
+      }),
+    )
+      .then(() => {
+        if (disposed) return;
+        current.controlMode = current.player ? "character" : "free";
+        if (current.player) {
+          const nearestEnemy = current.enemies
+            .filter((enemy) => enemy.alive)
+            .map((enemy) => ({ enemy, distance: enemy.group.position.distanceTo(current.player.group.position) }))
+            .sort((a, b) => a.distance - b.distance)[0]?.enemy;
+          if (nearestEnemy) {
+            const toEnemy = nearestEnemy.group.position.clone().sub(current.player.group.position);
+            current.yaw = Math.atan2(toEnemy.x, -toEnemy.z);
+          } else {
+            current.yaw = current.player.group.rotation.y;
+          }
+        }
+        setAssetProgress({ loaded: assetPlacements.length, total: assetPlacements.length });
+        setWorldStatus("Ready");
+        publishHud(true);
+      })
+      .catch(() => {
+        if (!disposed) {
+          setWorldStatus("Ready with asset issue");
+          publishHud(true);
+        }
+      });
+
+    const movement = new THREE.Vector3();
+    const forward = new THREE.Vector3();
+    const right = new THREE.Vector3();
+
+    function resize() {
+      const width = Math.max(1, mount.clientWidth);
+      const height = Math.max(1, mount.clientHeight);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+
+    function handlePointerLockChange() {
+      const locked = document.pointerLockElement === renderer.domElement;
+      current.pointerLocked = locked;
+      if (locked) current.gameActive = true;
+      setExploring(locked);
+      if (!locked) {
+        current.keys.clear();
+        if (document.fullscreenElement === mount.parentElement) {
+          document.exitFullscreen?.().catch(() => undefined);
+        }
+      }
+      publishHud(true);
+    }
+
+    function handleMouseMove(event) {
+      if (!current.pointerLocked) return;
+      if (current.controlMode === "character") {
+        current.yaw -= event.movementX * 0.0021;
+        current.pitch = Math.max(-0.7, Math.min(0.45, current.pitch - event.movementY * 0.0015));
+        return;
+      }
+      const euler = new THREE.Euler(0, 0, 0, "YXZ");
+      euler.setFromQuaternion(camera.quaternion);
+      euler.y -= event.movementX * 0.0021;
+      euler.x -= event.movementY * 0.0021;
+      euler.x = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, euler.x));
+      camera.quaternion.setFromEuler(euler);
+    }
+
+    function handleMouseDown(event) {
+      if (!current.gameActive || current.controlMode !== "character") return;
+      event.preventDefault();
+      if (event.button === 0) performPlayerAttack("primary");
+      if (event.button === 2) performPlayerAttack("secondary");
+    }
+
+    function handleContextMenu(event) {
+      if (current.gameActive && current.controlMode === "character") event.preventDefault();
+    }
+
+    function handleKeyDown(event) {
+      if (event.code === "KeyE" && current.nearbyDoor?.targetWorldId) {
+        event.preventDefault();
+        requestDoorTravel(current.nearbyDoor.targetWorldId);
+        return;
+      }
+      if (!current.pointerLocked && !current.gameActive) return;
+      if (event.code === "Escape") {
+        event.preventDefault();
+        current.gameActive = false;
+        document.exitPointerLock?.();
+        if (document.fullscreenElement === mount.parentElement) {
+          document.exitFullscreen?.().catch(() => undefined);
+        }
+        publishHud(true);
+        return;
+      }
+      if (event.code === "Space" && current.controlMode === "character") {
+        event.preventDefault();
+        performPlayerAttack("special");
+        return;
+      }
+      if (current.controlMode === "character" && ["KeyJ", "KeyK", "KeyL"].includes(event.code)) {
+        event.preventDefault();
+        if (event.code === "KeyJ") performPlayerAttack("primary");
+        if (event.code === "KeyK") performPlayerAttack("secondary");
+        if (event.code === "KeyL") performPlayerAttack("special");
+        return;
+      }
+      if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"].includes(event.code)) {
+        event.preventDefault();
+        current.keys.add(event.code);
+      }
+    }
+
+    function handleKeyUp(event) {
+      current.keys.delete(event.code);
+    }
+
+    function stepFreeCamera(delta) {
+      if (!current.pointerLocked) return;
+      movement.set(0, 0, 0);
+      camera.getWorldDirection(forward);
+      forward.y = 0;
+      forward.normalize();
+      right.crossVectors(forward, camera.up).normalize();
+      if (current.keys.has("KeyW") || current.keys.has("ArrowUp")) movement.add(forward);
+      if (current.keys.has("KeyS") || current.keys.has("ArrowDown")) movement.sub(forward);
+      if (current.keys.has("KeyD") || current.keys.has("ArrowRight")) movement.add(right);
+      if (current.keys.has("KeyA") || current.keys.has("ArrowLeft")) movement.sub(right);
+      if (movement.lengthSq() === 0) return;
+      movement.normalize().multiplyScalar(worldMoveSpeed * cellSize * delta);
+      const next = camera.position.clone().add(movement);
+      next.y = spawnPose.position.y;
+      if (canOccupyWorldPosition(next, world, solidKeys, cellSize)) {
+        camera.position.copy(next);
+        return;
+      }
+      const xOnly = camera.position.clone();
+      xOnly.x = next.x;
+      if (canOccupyWorldPosition(xOnly, world, solidKeys, cellSize)) camera.position.x = next.x;
+      const zOnly = camera.position.clone();
+      zOnly.z = next.z;
+      if (canOccupyWorldPosition(zOnly, world, solidKeys, cellSize)) camera.position.z = next.z;
+    }
+
+    function tryMoveEntity(entity, deltaVector) {
+      const next = entity.group.position.clone().add(deltaVector);
+      if (canOccupyWorldPosition(next, world, solidKeys, cellSize)) {
+        entity.group.position.copy(next);
+        return true;
+      }
+      const xOnly = entity.group.position.clone();
+      xOnly.x = next.x;
+      if (canOccupyWorldPosition(xOnly, world, solidKeys, cellSize)) entity.group.position.x = next.x;
+      const zOnly = entity.group.position.clone();
+      zOnly.z = next.z;
+      if (canOccupyWorldPosition(zOnly, world, solidKeys, cellSize)) entity.group.position.z = next.z;
+      return false;
+    }
+
+    function stepCharacter(delta, gameActive) {
+      const player = current.player;
+      if (!player) return;
+      if (gameActive && current.downedTimer > 0) {
+        current.downedTimer = Math.max(0, current.downedTimer - delta);
+      }
+      if (gameActive) {
+        Object.keys(current.cooldowns).forEach((key) => {
+          current.cooldowns[key] = Math.max(0, current.cooldowns[key] - delta);
+        });
+      }
+
+      movement.set(0, 0, 0);
+      forward.set(Math.sin(current.yaw), 0, -Math.cos(current.yaw)).normalize();
+      right.set(Math.cos(current.yaw), 0, Math.sin(current.yaw)).normalize();
+      if (gameActive && current.pointerLocked && player.alive && current.downedTimer <= 0) {
+        if (current.keys.has("KeyW") || current.keys.has("ArrowUp")) movement.add(forward);
+        if (current.keys.has("KeyS") || current.keys.has("ArrowDown")) movement.sub(forward);
+        if (current.keys.has("KeyD") || current.keys.has("ArrowRight")) movement.add(right);
+        if (current.keys.has("KeyA") || current.keys.has("ArrowLeft")) movement.sub(right);
+      }
+      if (movement.lengthSq() > 0) {
+        const moveVector = movement.normalize().multiplyScalar(player.stats.moveSpeed * cellSize * delta);
+        tryMoveEntity(player, moveVector);
+        player.group.rotation.y = player.initialYaw + Math.atan2(moveVector.x, -moveVector.z);
+        playEntityClip(player, player.animations.some((clip) => clip.name === "Run_InPlace") ? "Run_InPlace" : "Walk_InPlace");
+      } else if (player.alive) {
+        playEntityClip(player, player.asset.defaultAnimation);
+      }
+
+      const focus = player.group.position.clone();
+      focus.y += cellSize * 1.15;
+      const cameraTarget = focus.clone().add(forward.clone().multiplyScalar(cellSize * 0.85));
+      const cameraPosition = focus
+        .clone()
+        .sub(forward.clone().multiplyScalar(cellSize * 3.2))
+        .add(new THREE.Vector3(0, cellSize * (0.92 - current.pitch), 0));
+      camera.position.lerp(cameraPosition, 0.2);
+      camera.lookAt(cameraTarget);
+    }
+
+    function stepEnemyToward(enemy, targetPosition, delta) {
+      const enemyCell = getWorldCellFromPosition(enemy.group.position, world, cellSize);
+      const targetCell = getWorldCellFromPosition(targetPosition, world, cellSize);
+      enemy.pathCooldown -= delta;
+      if (enemy.pathCooldown <= 0 && enemyCell && targetCell) {
+        enemy.path = findWorldPath(enemyCell.key, targetCell.key, world, solidKeys);
+        enemy.pathCooldown = 0.45;
+      }
+      const nextKey = enemy.path[0];
+      if (!nextKey) return;
+      const [nextX, nextY] = nextKey.split(":").map(Number);
+      const nextPosition = getWorldCellCenter(nextX, nextY, world, enemy.placement.elevation);
+      const direction = nextPosition.sub(enemy.group.position);
+      direction.y = 0;
+      if (direction.length() < cellSize * 0.16) {
+        enemy.path.shift();
+        return;
+      }
+      const moveVector = direction.normalize().multiplyScalar(enemy.stats.moveSpeed * cellSize * delta);
+      tryMoveEntity(enemy, moveVector);
+      enemy.group.rotation.y = enemy.initialYaw + Math.atan2(moveVector.x, -moveVector.z);
+      playEntityClip(enemy, enemy.animations.some((clip) => clip.name === "Run_InPlace") ? "Run_InPlace" : "Walk_InPlace");
+    }
+
+    function stepEnemyAway(enemy, targetPosition, delta) {
+      const enemyCell = getWorldCellFromPosition(enemy.group.position, world, cellSize);
+      if (!enemyCell) return;
+      const neighbors = getGridNeighbors(enemyCell.key, world, solidKeys);
+      if (!neighbors.length) return;
+      const bestKey = neighbors
+        .map((key) => {
+          const [x, y] = key.split(":").map(Number);
+          const center = getWorldCellCenter(x, y, world, enemy.placement.elevation);
+          return { key, center, distance: center.distanceTo(targetPosition) };
+        })
+        .sort((a, b) => b.distance - a.distance)[0];
+      const direction = bestKey.center.sub(enemy.group.position);
+      direction.y = 0;
+      if (direction.lengthSq() === 0) return;
+      const moveVector = direction.normalize().multiplyScalar(enemy.stats.moveSpeed * cellSize * delta);
+      tryMoveEntity(enemy, moveVector);
+      enemy.group.rotation.y = enemy.initialYaw + Math.atan2(moveVector.x, -moveVector.z);
+      playEntityClip(enemy, enemy.animations.some((clip) => clip.name === "Run_InPlace") ? "Run_InPlace" : "Walk_InPlace");
+    }
+
+    function enemyAttack(enemy, player, distance) {
+      if (enemy.attackCooldown > 0 || !player.alive) return;
+      const attack = enemy.attacks[0] ?? { type: enemy.role === "enemy-ranged" ? "ranged" : "melee", damage: enemy.stats.damage, range: enemy.stats.range, cooldown: enemy.stats.cooldown };
+      const range = (attack.range ?? enemy.stats.range) * cellSize;
+      if (distance > range) return;
+      enemy.attackCooldown = attack.cooldown ?? enemy.stats.cooldown;
+      playEntityClip(enemy, attack.clip);
+      if (enemy.role === "enemy-ranged") {
+        const direction = player.group.position.clone().sub(enemy.group.position).normalize();
+        spawnProjectile({
+          owner: enemy,
+          target: player,
+          direction,
+          damage: attack.damage ?? enemy.stats.damage,
+          speed: attack.projectileSpeed ?? 5.8,
+          range: attack.range ?? enemy.stats.range,
+        });
+      } else {
+        applyDamage(player, attack.damage ?? enemy.stats.damage);
+      }
+    }
+
+    function stepEnemies(delta) {
+      const player = current.player;
+      if (!player?.alive) return;
+      current.enemies.forEach((enemy) => {
+        if (!enemy.alive) {
+          enemy.deathTimer = Math.max(0, enemy.deathTimer - delta);
+          if (enemy.deathTimer <= 0) enemy.group.visible = false;
+          updateHealthBar(enemy);
+          return;
+        }
+        enemy.attackCooldown = Math.max(0, enemy.attackCooldown - delta);
+        const distance = enemy.group.position.distanceTo(player.group.position);
+        const hasSight = hasWorldLineOfSight(enemy.group.position, player.group.position, world, solidKeys, cellSize);
+        if (enemy.role === "enemy-ranged") {
+          if (distance < cellSize * 2.2) {
+            stepEnemyAway(enemy, player.group.position, delta);
+          } else if (distance > enemy.stats.range * cellSize * 0.85 || !hasSight) {
+            stepEnemyToward(enemy, player.group.position, delta);
+          } else {
+            playEntityClip(enemy, enemy.animations.some((clip) => clip.name === "Aim_Hold") ? "Aim_Hold" : enemy.asset.defaultAnimation);
+            enemyAttack(enemy, player, distance);
+          }
+        } else if (distance > enemy.stats.range * cellSize) {
+          stepEnemyToward(enemy, player.group.position, delta);
+        } else {
+          playEntityClip(enemy, enemy.asset.defaultAnimation);
+          enemyAttack(enemy, player, distance);
+        }
+        updateHealthBar(enemy);
+      });
+    }
+
+    function stepProjectiles(delta) {
+      current.projectiles = current.projectiles.filter((projectile) => {
+        projectile.ttl -= delta;
+        projectile.mesh.position.addScaledVector(projectile.velocity, delta);
+        const target = projectile.target;
+        const targetPoint = target?.group?.position?.clone();
+        if (targetPoint) targetPoint.y += cellSize * 0.65;
+        const hit = target?.alive && targetPoint && projectile.mesh.position.distanceTo(targetPoint) < cellSize * 0.42;
+        if (hit) {
+          applyDamage(target, projectile.damage);
+          removeProjectile(projectile);
+          return false;
+        }
+        if (projectile.ttl <= 0) {
+          removeProjectile(projectile);
+          return false;
+        }
+        return true;
+      });
+    }
+
+    function stepEffects(delta) {
+      current.effects = current.effects.filter((effect) => {
+        effect.ttl -= delta;
+        const ratio = Math.max(0, effect.ttl / effect.maxTtl);
+        effect.mesh.scale.setScalar(1 + (1 - ratio) * 2.5);
+        effect.material.opacity = ratio * 0.58;
+        if (effect.ttl > 0) return true;
+        scene.remove(effect.mesh);
+        effect.material.dispose();
+        return false;
+      });
+    }
+
+    function animate() {
+      const delta = Math.min(clock.getDelta(), 0.05);
+      current.entities.forEach((entity) => {
+        entity.mixer?.update(delta);
+      });
+      if (current.controlMode === "character") {
+        stepCharacter(delta, current.gameActive);
+        if (current.gameActive) {
+          stepEnemies(delta);
+          stepProjectiles(delta);
+          stepEffects(delta);
+        }
+      } else {
+        stepFreeCamera(delta);
+      }
+      updateNearbyDoorPrompt();
+      current.enemies.forEach(updateHealthBar);
+      publishHud();
+      renderer.render(scene, camera);
+      current.animationId = requestAnimationFrame(animate);
+    }
+
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
+    resizeObserver?.observe(mount);
+    window.addEventListener("resize", resize);
+    document.addEventListener("pointerlockchange", handlePointerLockChange);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("contextmenu", handleContextMenu);
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keyup", handleKeyUp);
+    publishHud(true);
+    animate();
+
+    return () => {
+      disposed = true;
+      setDoorPrompt(null);
+      if (document.pointerLockElement === renderer.domElement) document.exitPointerLock?.();
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", resize);
+      document.removeEventListener("pointerlockchange", handlePointerLockChange);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("contextmenu", handleContextMenu);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keyup", handleKeyUp);
+      cancelAnimationFrame(current.animationId);
+      current.projectiles.forEach(removeProjectile);
+      current.effects.forEach((effect) => {
+        scene.remove(effect.mesh);
+        effect.material.dispose();
+      });
+      resources.forEach((resource) => resource?.dispose?.());
+      renderer.dispose();
+      if (renderer.domElement.parentNode === mount) {
+        mount.removeChild(renderer.domElement);
+      }
+    };
+  }, [requestDoorTravel, world, worldTargets]);
+
+  async function enterWorld() {
+    const renderer = stateRef.current.renderer;
+    const mount = mountRef.current;
+    if (!renderer || !mount) return;
+    const shell = mount.parentElement;
+    if (shell?.requestFullscreen && !document.fullscreenElement && window.innerWidth >= 900) {
+      await shell.requestFullscreen().catch(() => undefined);
+    }
+    const lockRequest = renderer.domElement.requestPointerLock?.();
+    lockRequest?.catch?.(() => undefined);
+  }
+
+  async function exitWorld() {
+    if (document.pointerLockElement) document.exitPointerLock?.();
+    if (document.fullscreenElement === mountRef.current?.parentElement) {
+      await document.exitFullscreen?.().catch(() => undefined);
+    }
+  }
+
+  function resetSpawn() {
+    stateRef.current.resetSpawn?.();
+  }
+
+  const healthRatio = hudState.maxHealth ? Math.max(0, Math.min(1, hudState.health / hudState.maxHealth)) : 0;
+
+  return (
+    <div
+      className="world-viewport-shell"
+      data-world-status={worldReady ? "ready" : "loading"}
+      data-exploring={exploring ? "true" : "false"}
+      data-world-assets={`${assetProgress.loaded}/${assetProgress.total}`}
+      data-control-mode={hudState.controlMode}
+      data-game-active={hudState.gameActive ? "true" : "false"}
+      data-player-health={`${hudState.health}/${hudState.maxHealth}`}
+      data-enemies-alive={hudState.enemiesAlive}
+      data-enemy-health={hudState.enemyHealth}
+      data-active-world-id={world.id ?? ""}
+      data-door-prompt={doorPrompt?.targetWorldId ?? ""}
+    >
+      <div ref={mountRef} className="world-viewport" aria-label={`${world.name} interactive 3D world`} />
+      <div className="world-viewport-overlay">
+        <div className="world-viewport-actions" aria-label="3D world controls">
+          <button type="button" onClick={enterWorld} disabled={!worldReady}>
+            <DoorOpen aria-hidden="true" />
+            <span>Enter World</span>
+          </button>
+          <button type="button" onClick={exitWorld} disabled={!exploring}>
+            <Pause aria-hidden="true" />
+            <span>Exit</span>
+          </button>
+          <button type="button" onClick={resetSpawn} disabled={!worldReady}>
+            <Sparkles aria-hidden="true" />
+            <span>Reset Spawn</span>
+          </button>
+        </div>
+        {doorPrompt ? (
+          <button type="button" className="world-door-prompt" onClick={() => requestDoorTravel(doorPrompt.targetWorldId)}>
+            <DoorOpen aria-hidden="true" />
+            <span>Enter {doorPrompt.targetName}</span>
+            <small>E</small>
+          </button>
+        ) : null}
+        <div className="world-player-hud" aria-label="Player combat status">
+          {hudState.controlMode === "character" ? (
+            <>
+              <div className="hud-health-heading">
+                <span>{hudState.playerName}</span>
+                <strong>
+                  {hudState.health}/{hudState.maxHealth}
+                </strong>
+              </div>
+              <div className="hud-health-track" aria-label="Player health bar">
+                <span style={{ width: `${healthRatio * 100}%` }} />
+              </div>
+              <div className="hud-cooldowns" aria-label="Attack cooldowns">
+                <span>L {hudState.cooldowns.primary.toFixed(1)}</span>
+                <span>R {hudState.cooldowns.secondary.toFixed(1)}</span>
+                <span>Space {hudState.cooldowns.special.toFixed(1)}</span>
+              </div>
+            </>
+          ) : (
+            <div className="hud-free-camera">
+              <Camera aria-hidden="true" />
+              <span>Free camera</span>
+            </div>
+          )}
+        </div>
+        <div className="world-viewport-status" aria-label="3D world status">
+          <span>
+            <Box aria-hidden="true" />
+            {worldStatus}
+          </span>
+          <span>
+            <Crosshair aria-hidden="true" />
+            {hudState.label}
+          </span>
+          <span>
+            <ShieldCheck aria-hidden="true" />
+            {hudState.enemiesAlive} enemies
           </span>
           <span>
             <Package aria-hidden="true" />
@@ -1334,15 +3417,15 @@ function Brand() {
   );
 }
 
-function PageNav({ activePage, onNavigate }) {
+function PageNav({ activeTab, onNavigate }) {
   return (
     <nav className="page-nav" aria-label="App pages">
       {pageTabs.map(({ id, label, Icon }) => (
         <button
           key={id}
           type="button"
-          className={activePage === id ? "active" : ""}
-          aria-current={activePage === id ? "page" : undefined}
+          className={activeTab === id ? "active" : ""}
+          aria-current={activeTab === id ? "page" : undefined}
           onClick={() => onNavigate(id)}
         >
           <Icon aria-hidden="true" />
@@ -1353,7 +3436,7 @@ function PageNav({ activePage, onNavigate }) {
   );
 }
 
-function AssetViewerPage({ activePage, onNavigate }) {
+function AssetViewerPage({ activeTab, onNavigate }) {
   const [selectedAssetId, setSelectedAssetId] = useState(defaultAssetId);
   const [autoSpin, setAutoSpin] = useState(false);
   const [activeClipName, setActiveClipName] = useState("");
@@ -1438,7 +3521,7 @@ function AssetViewerPage({ activePage, onNavigate }) {
     <>
       <header className="topbar viewer-topbar">
         <Brand />
-        <PageNav activePage={activePage} onNavigate={onNavigate} />
+        <PageNav activeTab={activeTab} onNavigate={onNavigate} />
         <nav className="view-tabs" aria-label="Lighting mode">
           {Object.entries(sceneModes).map(([key, item]) => (
             <button key={key} type="button" className={mode === key ? "active" : ""} onClick={() => setMode(key)}>
@@ -1551,6 +3634,525 @@ function AssetViewerPage({ activePage, onNavigate }) {
   );
 }
 
+function AssetGeneratorPage({ activeTab, onNavigate }) {
+  const [form, setForm] = useState(defaultAssetGeneratorForm);
+  const [outputView, setOutputView] = useState("brief");
+  const [copyStatus, setCopyStatus] = useState("");
+  const [apiStatus, setApiStatus] = useState(null);
+  const [apiError, setApiError] = useState("");
+  const [job, setJob] = useState(null);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const spec = useMemo(() => buildGeneratorSpec(form), [form]);
+  const brief = useMemo(() => buildAssetGenerationBrief(form, spec), [form, spec]);
+  const command = useMemo(() => buildAssetAgentCommand(form, brief), [form, brief]);
+  const specJson = useMemo(() => JSON.stringify(spec, null, 2), [spec]);
+  const validation = useMemo(() => validateGeneratorSpec(spec), [spec]);
+  const isVfx = form.type === "vfx";
+  const outputValue = outputView === "spec" ? specJson : outputView === "command" ? command : brief;
+  const isGenerating = isGeneratorJobActive(job);
+  const openAiReady = Boolean(apiStatus?.openai?.hasApiKey);
+  const blenderReady = Boolean(apiStatus?.blender?.ready);
+  const canGenerate = Boolean(apiStatus) && !apiError && openAiReady && blenderReady && !isGenerating;
+  const timeline = job?.steps?.length
+    ? job.steps
+    : Object.entries(generatorStepLabels).map(([id, label]) => ({ id, label, status: id === "queue" ? "ready" : "pending", detail: "" }));
+  const resultFiles = job?.result?.files ?? [];
+  const statusDetail = apiError
+    ? `Asset API offline at ${getAssetApiBase()}`
+    : !apiStatus
+      ? "Checking local asset service"
+      : !openAiReady
+        ? "Add OPENAI_API_KEY in .env. OPENAI-KEY is also supported."
+        : !blenderReady
+          ? apiStatus.blender?.setupHint || "Start Blender MCP or configure BLENDER_PATH."
+          : isGenerating
+            ? "Generation is running locally."
+            : job?.status === "completed"
+              ? "Asset generated and registered."
+              : job?.status === "failed"
+                ? "Generation failed. Check the timeline for details."
+                : "Ready for one-click generation.";
+  const readiness = [
+    {
+      ok: openAiReady,
+      label: "OpenAI",
+      detail: apiStatus?.openai?.model ? `${apiStatus.openai.model} via local API` : "Waiting for local API.",
+    },
+    {
+      ok: blenderReady,
+      label: "Blender",
+      detail: getBlenderStatusLabel(apiStatus?.blender),
+    },
+    { ok: validation.every((item) => item.ok), label: "Form", detail: `${spec.pipelineId}, ${spec.rigTarget}` },
+  ];
+
+  const refreshStatus = useCallback(async () => {
+    try {
+      const body = await assetApiRequest("/api/assets/status");
+      setApiStatus(body);
+      setApiError("");
+      if (body.currentJob) setJob(body.currentJob);
+    } catch (error) {
+      setApiError(error.message || "Unable to reach the local asset API.");
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshStatus();
+  }, [refreshStatus]);
+
+  useEffect(() => {
+    if (!job?.id || !isGeneratorJobActive(job)) return undefined;
+    const timer = window.setInterval(async () => {
+      try {
+        const body = await assetApiRequest(`/api/assets/jobs/${job.id}`);
+        setJob(body.job);
+      } catch (error) {
+        setApiError(error.message || "Unable to poll the asset generation job.");
+      }
+    }, 1800);
+    return () => window.clearInterval(timer);
+  }, [job?.id, job?.status]);
+
+  function updateField(field, value) {
+    setForm((current) => {
+      const next = { ...current, [field]: value };
+      if (field === "type") {
+        if (value === "character") next.rigging = "humanoid Mixamo best-effort";
+        if (value === "furniture" || value === "prop") {
+          next.rigging = "none";
+          next.animations = "none";
+        }
+        if (value === "plant") {
+          next.rigging = "simple transform rig";
+          next.animations = "default";
+        }
+        if (value === "vfx") {
+          next.rigging = "simple transform rig";
+          next.animations = "default";
+        }
+      }
+      return next;
+    });
+  }
+
+  async function copyText(text, label) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopyStatus(`${label} copied`);
+    } catch {
+      setCopyStatus(`Unable to copy ${label.toLowerCase()}`);
+    }
+    window.setTimeout(() => setCopyStatus(""), 2200);
+  }
+
+  async function startGeneration() {
+    try {
+      setCopyStatus("");
+      const body = await assetApiRequest("/api/assets/generate", {
+        method: "POST",
+        body: JSON.stringify({ family: form.type, form, brief }),
+      });
+      setJob(body.job);
+      setApiError("");
+      window.setTimeout(refreshStatus, 600);
+    } catch (error) {
+      setApiError(error.message || "Unable to start asset generation.");
+    }
+  }
+
+  return (
+    <>
+      <header className="topbar generator-topbar">
+        <Brand />
+        <PageNav activeTab={activeTab} onNavigate={onNavigate} />
+        <div className="toolbar">
+          <IconButton label="Refresh generator status" onClick={refreshStatus}>
+            <RefreshCw />
+          </IconButton>
+          <IconButton label="Copy asset spec" onClick={() => copyText(specJson, "Asset spec")}>
+            <ClipboardCheck />
+          </IconButton>
+        </div>
+      </header>
+
+      <section className="asset-generator" aria-label="Asset Generator">
+        <aside className="generator-panel generator-form-panel">
+          <div className="panel-heading">
+            <div>
+              <span>Asset Brief</span>
+              <small>{assetGeneratorTypes.find((item) => item.id === form.type)?.label}</small>
+            </div>
+            <Package aria-hidden="true" />
+          </div>
+
+          <div className="generator-form-grid">
+            <label>
+              <span>Type</span>
+              <select value={form.type} onChange={(event) => updateField("type", event.target.value)}>
+                {assetGeneratorTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Name</span>
+              <input
+                value={form.name}
+                placeholder="Village healer NPC"
+                onChange={(event) => updateField("name", event.target.value)}
+              />
+            </label>
+            <label>
+              <span>Style</span>
+              <input
+                value={form.style}
+                placeholder="Stylized warm hand-painted fantasy"
+                onChange={(event) => updateField("style", event.target.value)}
+              />
+            </label>
+            {!isVfx ? (
+              <label>
+                <span>Rigging</span>
+                <select value={form.rigging} onChange={(event) => updateField("rigging", event.target.value)}>
+                  <option value="none">none</option>
+                  <option value="simple transform rig">simple</option>
+                  <option value="deformation rig">deformation</option>
+                  <option value="humanoid Mixamo best-effort">humanoid Mixamo best-effort</option>
+                </select>
+              </label>
+            ) : (
+              <label>
+                <span>VFX Family</span>
+                <select value={form.vfxFamily} onChange={(event) => updateField("vfxFamily", event.target.value)}>
+                  {vfxFamilies.map((family) => (
+                    <option key={family} value={family}>
+                      {family}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <label>
+              <span>Animations</span>
+              <select value={form.animations} onChange={(event) => updateField("animations", event.target.value)}>
+                <option value="default">default</option>
+                <option value="none">none</option>
+                <option value="specific">specific clips</option>
+              </select>
+            </label>
+          </div>
+
+          <label className="full-field">
+            <span>
+              <Package aria-hidden="true" />
+              Required Parts
+            </span>
+            <textarea
+              value={form.requiredParts}
+              placeholder="Readable silhouette, clear face, tool belt, display base"
+              onChange={(event) => updateField("requiredParts", event.target.value)}
+              rows="4"
+            />
+          </label>
+          <label className="full-field">
+            <span>
+              <Palette aria-hidden="true" />
+              Materials / Colors
+            </span>
+            <textarea
+              value={form.materials}
+              placeholder="Teal cloth, warm leather, ivory accents, soft cyan glow"
+              onChange={(event) => updateField("materials", event.target.value)}
+              rows="4"
+            />
+          </label>
+          <label className="full-field">
+            <span>
+              <Film aria-hidden="true" />
+              Animation Notes
+            </span>
+            <textarea
+              value={form.animationNotes}
+              placeholder="Leave blank for useful defaults, or list clips such as Idle, Walk, Attack"
+              onChange={(event) => updateField("animationNotes", event.target.value)}
+              rows="3"
+            />
+          </label>
+
+          {isVfx ? (
+            <div className="generator-vfx-fields">
+              <div className="generator-form-grid">
+                <label>
+                  <span>Loop</span>
+                  <select value={form.loopMode} onChange={(event) => updateField("loopMode", event.target.value)}>
+                    <option value="looping">looping</option>
+                    <option value="one-shot">one-shot</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Seconds</span>
+                  <input
+                    type="number"
+                    min="0.25"
+                    max="30"
+                    step="0.25"
+                    value={form.durationSeconds}
+                    onChange={(event) => updateField("durationSeconds", event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span>Emission</span>
+                  <select value={form.emissionSource} onChange={(event) => updateField("emissionSource", event.target.value)}>
+                    {emissionSources.map((source) => (
+                      <option key={source} value={source}>
+                        {source}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Transparency</span>
+                  <select value={form.transparencyStyle} onChange={(event) => updateField("transparencyStyle", event.target.value)}>
+                    {transparencyStyles.map((style) => (
+                      <option key={style} value={style}>
+                        {style}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="full-field">
+                <span>
+                  <Sparkles aria-hidden="true" />
+                  Motion Behavior
+                </span>
+                <textarea value={form.motionBehavior} onChange={(event) => updateField("motionBehavior", event.target.value)} rows="3" />
+              </label>
+              <label className="full-field">
+                <span>
+                  <SlidersHorizontal aria-hidden="true" />
+                  Implementation
+                </span>
+                <textarea
+                  value={form.implementationPreference}
+                  onChange={(event) => updateField("implementationPreference", event.target.value)}
+                  rows="3"
+                />
+              </label>
+            </div>
+          ) : null}
+
+          <label className="full-field">
+            <span>
+              <Maximize aria-hidden="true" />
+              Viewer Framing
+            </span>
+            <textarea
+              value={form.viewerFraming}
+              placeholder="Centered front-quarter framing, feet visible, readable face"
+              onChange={(event) => updateField("viewerFraming", event.target.value)}
+              rows="3"
+            />
+          </label>
+          <label className="full-field">
+            <span>
+              <TextCursorInput aria-hidden="true" />
+              Asset Brief
+            </span>
+            <textarea
+              value={form.freeformBrief}
+              placeholder="Optional extra intent, gameplay role, or details the form does not cover"
+              onChange={(event) => updateField("freeformBrief", event.target.value)}
+              rows="4"
+            />
+          </label>
+
+          <button
+            type="button"
+            className={`generate-asset-button${isGenerating ? " generating" : ""}`}
+            disabled={!canGenerate}
+            onClick={startGeneration}
+          >
+            {isGenerating ? <RefreshCw aria-hidden="true" /> : <WandSparkles aria-hidden="true" />}
+            <span>{isGenerating ? "Generating" : "Generate Asset"}</span>
+          </button>
+          <div className={`generator-inline-status${canGenerate ? " ready" : ""}${apiError || job?.status === "failed" ? " error" : ""}`}>
+            {statusDetail}
+          </div>
+        </aside>
+
+        <section className="generator-stage-panel generator-workflow-panel">
+          <div className="world-stage-heading">
+            <div>
+              <h1>{spec.name}</h1>
+              <span>{job?.status ? `${job.status} · ${spec.pipelineId}` : spec.pipelineId}</span>
+            </div>
+            <div className="world-stats" aria-label="Asset spec stats">
+              <span>
+                <Package aria-hidden="true" />
+                {spec.assetFamily}
+              </span>
+              <span>
+                <Film aria-hidden="true" />
+                {spec.animationClips.length}
+              </span>
+            </div>
+          </div>
+
+          <div className="generator-workflow-body">
+            <div className="generator-status-card">
+              <div>
+                <span>Local Generation</span>
+                <strong>{getBlenderStatusLabel(apiStatus?.blender)}</strong>
+              </div>
+              <small>{statusDetail}</small>
+            </div>
+
+            <div className="generator-timeline" aria-label="Asset generation progress">
+              {timeline.map((step) => (
+                <div key={step.id} className={`generator-step ${step.status || "pending"}`}>
+                  <span>{step.status === "running" ? <RefreshCw aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}</span>
+                  <div>
+                    <strong>{step.label || generatorStepLabels[step.id] || step.id}</strong>
+                    <small>{step.detail || (step.status === "pending" ? "Waiting" : step.status)}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {job?.status === "completed" && job.result ? (
+              <div className="generator-result">
+                <div className="generator-preview-card">
+                  <img src={`/renders/${job.result.slug}-preview.png`} alt="" loading="lazy" />
+                  <div>
+                    <span>Generated Asset</span>
+                    <strong>{job.result.spec?.name || spec.name}</strong>
+                    <small>{job.result.pipelineId}</small>
+                  </div>
+                </div>
+                <div className="generator-output-cards">
+                  {resultFiles.map((file) => (
+                    <a key={file.id} href={getPublicHref(file)} target="_blank" rel="noreferrer">
+                      <Download aria-hidden="true" />
+                      <span>
+                        <strong>{file.label}</strong>
+                        <small>{file.path}</small>
+                      </span>
+                    </a>
+                  ))}
+                </div>
+                <button type="button" className="wide-action generator-viewer-action" onClick={() => onNavigate("viewer")}>
+                  <Box aria-hidden="true" />
+                  <span>Open Asset Viewer</span>
+                </button>
+              </div>
+            ) : (
+              <div className="generator-empty-result">
+                <WandSparkles aria-hidden="true" />
+                <strong>{isGenerating ? "Blender is building the asset" : "Ready to create a Blender asset"}</strong>
+                <span>{isGenerating ? "This can take a few minutes while Blender renders and exports." : "Generated files will appear here after the run finishes."}</span>
+              </div>
+            )}
+
+            <details className="generator-advanced" open={isAdvancedOpen} onToggle={(event) => setIsAdvancedOpen(event.currentTarget.open)}>
+              <summary>
+                <SlidersHorizontal aria-hidden="true" />
+                <span>Advanced</span>
+              </summary>
+              <nav className="schema-tabs generator-debug-tabs" aria-label="Asset generator debug output">
+                {[
+                  ["brief", "Brief"],
+                  ["spec", "Spec"],
+                  ["command", "Command"],
+                ].map(([id, label]) => (
+                  <button key={id} type="button" className={outputView === id ? "active" : ""} onClick={() => setOutputView(id)}>
+                    {label}
+                  </button>
+                ))}
+              </nav>
+              <textarea className="schema-output generator-output" readOnly value={outputValue} />
+              <div className="agent-actions">
+                <button type="button" onClick={() => copyText(outputValue, outputView)}>
+                  <Copy aria-hidden="true" />
+                  <span>Copy</span>
+                </button>
+              </div>
+            </details>
+          </div>
+
+          <div className="creator-status-strip generator-status-strip">
+            <span>{copyStatus || statusDetail}</span>
+            <span>{spec.slug}</span>
+            <span>{spec.rigTarget}</span>
+          </div>
+        </section>
+
+        <aside className="generator-panel generator-review-panel">
+          <div className="panel-heading">
+            <div>
+              <span>Readiness</span>
+              <small>{apiStatus?.openai?.model || "local API"}</small>
+            </div>
+            <WandSparkles aria-hidden="true" />
+          </div>
+          <div className="asset-facts generator-facts">
+            <div>
+              <dt>
+                <ShieldCheck aria-hidden="true" />
+                Secret handling
+              </dt>
+              <dd>OpenAI requests run only through the local asset API. The browser never receives the API key.</dd>
+            </div>
+            <div>
+              <dt>
+                <Maximize aria-hidden="true" />
+                Output paths
+              </dt>
+              <dd>{`public/models/${spec.slug}.blend, public/models/${spec.slug}.glb, public/renders/${spec.slug}-preview.png`}</dd>
+            </div>
+          </div>
+          <div className="validation-list">
+            {[...readiness, ...validation].map((item) => (
+              <div key={item.label} className={item.ok ? "ready" : "needs-work"}>
+                <CheckCircle2 aria-hidden="true" />
+                <span>
+                  <strong>{item.label}</strong>
+                  <small>{item.detail}</small>
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="agent-actions">
+            <button type="button" onClick={refreshStatus}>
+              <RefreshCw aria-hidden="true" />
+              <span>Status</span>
+            </button>
+            <button type="button" onClick={() => copyText(specJson, "Asset spec")}>
+              <ClipboardCheck aria-hidden="true" />
+              <span>Spec</span>
+            </button>
+          </div>
+        </aside>
+      </section>
+    </>
+  );
+}
+
 function WorldPaletteButton({ item, active, onSelect }) {
   const Icon = item.Icon ?? Package;
   return (
@@ -1570,13 +4172,22 @@ function WorldPaletteButton({ item, active, onSelect }) {
 }
 
 function WorldCell({ cell, x, y, selected, onClick }) {
-  const structure = cell?.type === "structure" ? findStructure(cell.itemId) : null;
+  const structurePlacement = cell?.type === "structure" ? cell : cell?.structure;
+  const occupantPlacement = cell?.type === "asset" ? cell : cell?.occupant;
+  const primaryPlacement = occupantPlacement ?? structurePlacement;
+  const structure = structurePlacement ? findStructure(structurePlacement.itemId) : null;
   const Icon = structure?.Icon ?? Package;
+  const cellLabel = occupantPlacement && structurePlacement
+    ? `${occupantPlacement.label} on ${structurePlacement.label}`
+    : primaryPlacement?.label;
   const className = [
     "world-cell",
-    cell ? "occupied" : "",
-    cell?.type ?? "",
-    cell?.className ?? "",
+    primaryPlacement ? "occupied" : "",
+    structurePlacement ? "has-structure" : "",
+    occupantPlacement ? "has-occupant" : "",
+    structurePlacement?.className ?? "",
+    structurePlacement?.targetWorldId ? "linked-door" : "",
+    occupantPlacement?.combat?.role ?? "",
     selected ? "selected" : "",
   ]
     .filter(Boolean)
@@ -1587,23 +4198,28 @@ function WorldCell({ cell, x, y, selected, onClick }) {
       type="button"
       className={className}
       style={{
-        "--cell-accent": cell?.color ?? "#28e0ea",
-        "--cell-rotation": `${cell?.rotation ?? 0}deg`,
-        "--cell-scale": cell?.scale ?? 1,
+        "--cell-accent": primaryPlacement?.color ?? "#28e0ea",
+        "--cell-rotation": `${occupantPlacement?.rotation ?? structurePlacement?.rotation ?? 0}deg`,
+        "--cell-scale": occupantPlacement?.scale ?? structurePlacement?.scale ?? 1,
       }}
-      aria-label={cell ? `${cell.label} at ${x}, ${y}` : `Empty cell ${x}, ${y}`}
+      aria-label={cellLabel ? `${cellLabel} at ${x}, ${y}` : `Empty cell ${x}, ${y}`}
       aria-pressed={selected}
       onClick={onClick}
     >
       <span className="cell-coordinates">
         {x + 1}.{y + 1}
       </span>
-      {cell ? (
-        <span className="cell-content">
-          {cell.previewUrl ? <img src={cell.previewUrl} alt="" loading="lazy" /> : <Icon aria-hidden="true" />}
+      {primaryPlacement ? (
+        <span className="cell-content layered-cell-content">
+          {structurePlacement ? (
+            <span className="cell-structure-mark">
+              <Icon aria-hidden="true" />
+            </span>
+          ) : null}
+          {occupantPlacement ? <img src={occupantPlacement.previewUrl} alt="" loading="lazy" /> : null}
         </span>
       ) : null}
-      {cell ? <strong>{cell.label}</strong> : null}
+      {cellLabel ? <strong>{cellLabel}</strong> : null}
     </button>
   );
 }
@@ -1612,16 +4228,34 @@ function getInitialWorldView() {
   return window.location.hash.replace("#", "") === "world-3d" ? "view3d" : "grid";
 }
 
-function WorldCreatorPage({ activePage, onNavigate }) {
-  const [worldMeta, setWorldMeta] = useState(defaultWorldMeta);
-  const [cells, setCells] = useState(() => createStarterWorldCells());
+function WorldCreatorPage({ activeTab, onNavigate }) {
+  const [initialEditorState] = useState(() => {
+    const library = loadWorldLibrary();
+    const activeRecord = library.worlds.find((world) => world.id === library.activeWorldId) ?? library.worlds[0];
+    const activeCells = getCellsFromWorldRecord(activeRecord);
+    return {
+      library,
+      worldMeta: activeRecord.meta,
+      cells: activeCells,
+      selectedKey: getDefaultSelectedKey(activeCells),
+    };
+  });
+  const [worldLibrary, setWorldLibrary] = useState(initialEditorState.library);
+  const [worldMeta, setWorldMeta] = useState(initialEditorState.worldMeta);
+  const [cells, setCells] = useState(initialEditorState.cells);
   const [selectedPaletteId, setSelectedPaletteId] = useState(defaultAssetId);
   const [brushMode, setBrushMode] = useState("place");
   const [worldView, setWorldView] = useState(getInitialWorldView);
-  const [selectedKey, setSelectedKey] = useState(getCellKey(3, 3));
+  const [selectedKey, setSelectedKey] = useState(initialEditorState.selectedKey);
   const [importText, setImportText] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
   const [schemaView, setSchemaView] = useState("json");
+  const [worldPrompt, setWorldPrompt] = useState(defaultWorldGenerationPrompt);
+  const [worldApiStatus, setWorldApiStatus] = useState(null);
+  const [worldApiError, setWorldApiError] = useState("");
+  const [isGeneratingWorld, setIsGeneratingWorld] = useState(false);
+  const activeWorldId = worldLibrary.activeWorldId;
+  const activeWorldRecord = worldLibrary.worlds.find((world) => world.id === activeWorldId) ?? worldLibrary.worlds[0];
 
   const paletteItems = useMemo(
     () => [
@@ -1638,11 +4272,34 @@ function WorldCreatorPage({ activePage, onNavigate }) {
     [],
   );
   const selectedPalette = paletteItems.find((item) => item.id === selectedPaletteId) ?? paletteItems[0];
-  const worldDocument = useMemo(() => serializeWorld(worldMeta, cells), [cells, worldMeta]);
+  const worldTargets = useMemo(
+    () => worldLibrary.worlds.map((world) => ({ id: world.id, name: world.meta.name })),
+    [worldLibrary.worlds],
+  );
+  const worldDocument = useMemo(() => serializeWorld(worldMeta, cells, activeWorldId), [activeWorldId, cells, worldMeta]);
   const worldJson = useMemo(() => JSON.stringify(worldDocument, null, 2), [worldDocument]);
   const agentBrief = useMemo(() => buildAgentBrief(worldDocument), [worldDocument]);
   const validation = useMemo(() => validateWorld(worldDocument), [worldDocument]);
-  const selectedCell = selectedKey ? cells[selectedKey] : null;
+  const schemaOutputValue = schemaView === "json" ? worldJson : schemaView === "brief" ? agentBrief : worldPrompt;
+  const selectedCellRecord = selectedKey ? cells[selectedKey] : null;
+  const selectedCell = getSelectedCellPlacement(selectedCellRecord, selectedPalette, brushMode);
+  const selectedLayer = selectedCell?.layer ?? getPaletteLayer(selectedPalette);
+  const selectedAsset = selectedCell?.type === "asset" ? findAsset(selectedCell.itemId) : null;
+  const selectedCombatStats = selectedAsset && selectedCell?.combat ? getResolvedCombatStats(selectedAsset, selectedCell.combat) : null;
+  const selectedDoorTargetId = selectedCell?.type === "structure" && selectedCell.itemId === "door" ? selectedCell.targetWorldId ?? "" : "";
+  const selectedDoorTargetMissing = selectedDoorTargetId && !worldLibrary.worlds.some((world) => world.id === selectedDoorTargetId);
+  const availableDoorTargets = worldLibrary.worlds.filter((world) => world.id !== activeWorldId);
+  const worldOpenAiReady = Boolean(worldApiStatus?.openai?.hasApiKey);
+  const canGenerateWorld = Boolean(worldApiStatus) && !worldApiError && worldOpenAiReady && !isGeneratingWorld;
+  const worldGenerationStatus = worldApiError
+    ? `World API offline at ${getAssetApiBase()}`
+    : !worldApiStatus
+      ? "Checking local world generation service"
+      : !worldOpenAiReady
+        ? "Add OPENAI_API_KEY in .env. OPENAI-KEY is also supported."
+        : isGeneratingWorld
+          ? "OpenAI is drafting a world grid."
+          : "Ready to generate a saved world.";
 
   const gridCells = useMemo(
     () =>
@@ -1653,6 +4310,114 @@ function WorldCreatorPage({ activePage, onNavigate }) {
       }),
     [cells, worldMeta.columns, worldMeta.rows],
   );
+
+  const refreshWorldStatus = useCallback(async () => {
+    try {
+      const body = await assetApiRequest("/api/worlds/status");
+      setWorldApiStatus(body);
+      setWorldApiError("");
+    } catch (error) {
+      setWorldApiError(error.message || "Unable to reach the local world generation API.");
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshWorldStatus();
+  }, [refreshWorldStatus]);
+
+  useEffect(() => {
+    saveWorldLibrary(worldLibrary);
+  }, [worldLibrary]);
+
+  useEffect(() => {
+    setWorldLibrary((current) => {
+      const activeIndex = current.worlds.findIndex((world) => world.id === activeWorldId);
+      if (activeIndex < 0) return current;
+      const nextWorlds = [...current.worlds];
+      nextWorlds[activeIndex] = {
+        ...nextWorlds[activeIndex],
+        updatedAt: new Date().toISOString(),
+        meta: normaliseWorldMeta(worldMeta),
+        placements: getSerializedWorldPlacements(cells),
+      };
+      return { ...current, worlds: nextWorlds };
+    });
+  }, [activeWorldId, cells, worldMeta]);
+
+  const activateWorld = useCallback(
+    (worldId, statusMessage) => {
+      const record = worldLibrary.worlds.find((world) => world.id === worldId);
+      if (!record) return;
+      const nextCells = getCellsFromWorldRecord(record);
+      setWorldMeta(record.meta);
+      setCells(nextCells);
+      setSelectedKey(getDefaultSelectedKey(nextCells));
+      setWorldLibrary((current) => ({ ...current, activeWorldId: record.id }));
+      setCopyStatus(statusMessage ?? `${record.meta.name} loaded`);
+      window.setTimeout(() => setCopyStatus(""), 2200);
+    },
+    [worldLibrary.worlds],
+  );
+
+  function createNewWorld() {
+    const meta = {
+      ...defaultWorldMeta,
+      name: getUniqueWorldName("New World", worldLibrary.worlds),
+    };
+    const nextCells = createStarterWorldCells(meta.columns, meta.rows);
+    const record = createWorldRecord({ meta, cells: nextCells });
+    setWorldMeta(record.meta);
+    setCells(nextCells);
+    setSelectedKey(getDefaultSelectedKey(nextCells));
+    setWorldLibrary((current) => ({
+      ...current,
+      activeWorldId: record.id,
+      worlds: [...current.worlds, record],
+    }));
+    setCopyStatus("New world created");
+    window.setTimeout(() => setCopyStatus(""), 2200);
+  }
+
+  function duplicateWorld() {
+    const meta = {
+      ...worldMeta,
+      name: getUniqueWorldName(`${worldMeta.name} Copy`, worldLibrary.worlds),
+    };
+    const nextCells = createCellsFromPlacements(getSerializedWorldPlacements(cells), meta.columns, meta.rows);
+    const record = createWorldRecord({ meta, cells: nextCells });
+    setWorldMeta(record.meta);
+    setCells(nextCells);
+    setSelectedKey(getDefaultSelectedKey(nextCells));
+    setWorldLibrary((current) => ({
+      ...current,
+      activeWorldId: record.id,
+      worlds: [...current.worlds, record],
+    }));
+    setCopyStatus("World duplicated");
+    window.setTimeout(() => setCopyStatus(""), 2200);
+  }
+
+  function deleteActiveWorld() {
+    if (worldLibrary.worlds.length <= 1) {
+      setCopyStatus("Keep at least one world");
+      window.setTimeout(() => setCopyStatus(""), 2200);
+      return;
+    }
+    const activeIndex = Math.max(0, worldLibrary.worlds.findIndex((world) => world.id === activeWorldId));
+    const remainingWorlds = worldLibrary.worlds.filter((world) => world.id !== activeWorldId);
+    const fallbackWorld = remainingWorlds[Math.max(0, activeIndex - 1)] ?? remainingWorlds[0];
+    const nextCells = getCellsFromWorldRecord(fallbackWorld);
+    setWorldMeta(fallbackWorld.meta);
+    setCells(nextCells);
+    setSelectedKey(getDefaultSelectedKey(nextCells));
+    setWorldLibrary((current) => ({
+      ...current,
+      activeWorldId: fallbackWorld.id,
+      worlds: current.worlds.filter((world) => world.id !== activeWorldId),
+    }));
+    setCopyStatus("World deleted");
+    window.setTimeout(() => setCopyStatus(""), 2200);
+  }
 
   function navigate(page) {
     onNavigate(page);
@@ -1684,36 +4449,72 @@ function WorldCreatorPage({ activePage, onNavigate }) {
     setWorldMeta(nextMeta);
     setCells((current) => resizeWorldCells(current, nextMeta.columns, nextMeta.rows));
     setSelectedKey((currentKey) => {
-      const currentCell = currentKey ? cells[currentKey] : null;
-      if (!currentCell || currentCell.x >= nextMeta.columns || currentCell.y >= nextMeta.rows) return null;
+      if (!currentKey) return null;
+      const [x, y] = currentKey.split(":").map(Number);
+      if (x >= nextMeta.columns || y >= nextMeta.rows) return null;
       return currentKey;
     });
   }
 
   function handleCellAction(x, y) {
     const key = getCellKey(x, y);
+    const layer = getPaletteLayer(selectedPalette);
     setSelectedKey(key);
     if (brushMode === "inspect") return;
     if (brushMode === "erase") {
       setCells((current) => {
         const next = { ...current };
-        delete next[key];
+        removeCellLayer(next, x, y, layer);
         return next;
       });
       return;
     }
-    setCells((current) => ({
-      ...current,
-      [key]: createPaletteCell(selectedPalette, x, y, current[key]),
-    }));
+    setCells((current) => {
+      const next = { ...current };
+      const currentCell = current[key];
+      const previousPlacement = currentCell?.type ? currentCell : currentCell?.[layer];
+      setCellLayer(next, createPalettePlacement(selectedPalette, x, y, previousPlacement));
+      return next;
+    });
   }
 
   function updateSelectedCell(patch) {
-    if (!selectedKey || !cells[selectedKey]) return;
-    setCells((current) => ({
-      ...current,
-      [selectedKey]: { ...current[selectedKey], ...patch },
-    }));
+    if (!selectedKey || !selectedCell) return;
+    setCells((current) => {
+      const currentCell = current[selectedKey];
+      const currentPlacement = currentCell?.type ? currentCell : currentCell?.[selectedLayer];
+      if (!currentPlacement) return current;
+      const next = { ...current };
+      setCellLayer(next, { ...currentPlacement, ...patch });
+      return next;
+    });
+  }
+
+  function updateSelectedDoorTarget(targetWorldId) {
+    updateSelectedCell({ targetWorldId: targetWorldId || undefined });
+  }
+
+  function updateSelectedCombatRole(role) {
+    if (!selectedCell?.combat) return;
+    updateSelectedCell({ combat: { ...selectedCell.combat, role } });
+  }
+
+  function updateSelectedCombatStat(field, value) {
+    if (!selectedCell?.combat) return;
+    updateSelectedCell({
+      combat: {
+        ...selectedCell.combat,
+        statOverrides: {
+          ...selectedCell.combat.statOverrides,
+          [field]: Number(value),
+        },
+      },
+    });
+  }
+
+  function resetSelectedCombatDefaults() {
+    if (!selectedAsset) return;
+    updateSelectedCell({ combat: createCombatState(selectedAsset, {}) });
   }
 
   function clearWorld() {
@@ -1722,8 +4523,21 @@ function WorldCreatorPage({ activePage, onNavigate }) {
   }
 
   function resetStarterWorld() {
-    setCells(createStarterWorldCells(worldMeta.columns, worldMeta.rows));
-    setSelectedKey(getCellKey(3, 3));
+    const seedRecord = getSeedWorldRecord(activeWorldId);
+    if (seedRecord) {
+      const nextCells = getCellsFromWorldRecord(seedRecord);
+      setWorldMeta(seedRecord.meta);
+      setCells(nextCells);
+      setSelectedKey(getDefaultSelectedKey(nextCells));
+      setCopyStatus(`${seedRecord.meta.name} reset`);
+      window.setTimeout(() => setCopyStatus(""), 2200);
+      return;
+    }
+    const nextCells = createStarterWorldCells(worldMeta.columns, worldMeta.rows);
+    setCells(nextCells);
+    setSelectedKey(getDefaultSelectedKey(nextCells));
+    setCopyStatus("Starter world reset");
+    window.setTimeout(() => setCopyStatus(""), 2200);
   }
 
   async function copyText(text, label) {
@@ -1746,6 +4560,47 @@ function WorldCreatorPage({ activePage, onNavigate }) {
       setCopyStatus(`Unable to copy ${label.toLowerCase()}`);
     }
     window.setTimeout(() => setCopyStatus(""), 2200);
+  }
+
+  async function generateWorldFromPrompt() {
+    try {
+      setIsGeneratingWorld(true);
+      setWorldApiError("");
+      setCopyStatus("Generating world grid");
+      const body = await assetApiRequest("/api/worlds/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          prompt: worldPrompt,
+          currentWorld: worldDocument,
+        }),
+      });
+      const generatedWorld = body.world ?? {};
+      const meta = normaliseWorldMeta(generatedWorld);
+      const record = createWorldRecord({
+        meta: {
+          ...meta,
+          name: getUniqueWorldName(meta.name || "Generated World", worldLibrary.worlds),
+        },
+        placements: Array.isArray(generatedWorld.placements) ? generatedWorld.placements : [],
+      });
+      const nextCells = getCellsFromWorldRecord(record);
+      setWorldMeta(record.meta);
+      setCells(nextCells);
+      setSelectedKey(getDefaultSelectedKey(nextCells));
+      setWorldLibrary((current) => ({
+        ...current,
+        activeWorldId: record.id,
+        worlds: [...current.worlds, record],
+      }));
+      setSchemaView("json");
+      setCopyStatus(`${record.meta.name} generated`);
+    } catch (error) {
+      setWorldApiError(error.message || "Unable to generate a world grid.");
+      setCopyStatus("World generation failed");
+    } finally {
+      setIsGeneratingWorld(false);
+      window.setTimeout(() => setCopyStatus(""), 2600);
+    }
   }
 
   function downloadWorldJson() {
@@ -1772,7 +4627,7 @@ function WorldCreatorPage({ activePage, onNavigate }) {
         const x = Number(placement.x);
         const y = Number(placement.y);
         if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= columns || y >= rows) return;
-        nextCells[getCellKey(x, y)] = normaliseImportedCell(placement);
+        setCellLayer(nextCells, normaliseImportedPlacement(placement));
       });
       setWorldMeta({
         name: parsed.name || worldMeta.name,
@@ -1782,8 +4637,9 @@ function WorldCreatorPage({ activePage, onNavigate }) {
         cellSize: parsed.grid?.cellSize || worldMeta.cellSize,
         rules: parsed.rules || worldMeta.rules,
       });
-      setCells(placements.length ? nextCells : createStarterWorldCells(columns, rows));
-      setSelectedKey(Object.keys(nextCells)[0] ?? null);
+      const importedCells = placements.length ? nextCells : createStarterWorldCells(columns, rows);
+      setCells(importedCells);
+      setSelectedKey(getDefaultSelectedKey(importedCells));
       setCopyStatus("World JSON imported");
     } catch {
       setCopyStatus("Import JSON has a syntax issue");
@@ -1795,7 +4651,7 @@ function WorldCreatorPage({ activePage, onNavigate }) {
     <>
       <header className="topbar creator-topbar">
         <Brand />
-        <PageNav activePage={activePage} onNavigate={navigate} />
+        <PageNav activeTab={activeTab} onNavigate={navigate} />
         <nav className="view-tabs creator-mode-tabs" aria-label="World brush mode">
           {Object.entries(brushModes).map(([key, item]) => {
             const Icon = item.Icon;
@@ -1825,6 +4681,40 @@ function WorldCreatorPage({ activePage, onNavigate }) {
 
       <section className={`world-creator${worldView === "view3d" ? " world-creator-3d" : ""}`} aria-label="World Creator">
         <aside className="creator-panel palette-panel" aria-label="World palette">
+          <div className="world-library-panel" aria-label="Saved worlds">
+            <div className="panel-heading">
+              <div>
+                <span>Worlds</span>
+                <small>{worldLibrary.worlds.length} saved</small>
+              </div>
+              <MapIcon aria-hidden="true" />
+            </div>
+            <label className="world-select-field">
+              <span>Active World</span>
+              <select value={activeWorldId} onChange={(event) => activateWorld(event.target.value)}>
+                {worldLibrary.worlds.map((world) => (
+                  <option key={world.id} value={world.id}>
+                    {world.meta.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="world-library-actions">
+              <button type="button" onClick={createNewWorld}>
+                <Plus aria-hidden="true" />
+                <span>New</span>
+              </button>
+              <button type="button" onClick={duplicateWorld}>
+                <Copy aria-hidden="true" />
+                <span>Duplicate</span>
+              </button>
+              <button type="button" onClick={deleteActiveWorld} disabled={worldLibrary.worlds.length <= 1}>
+                <Trash2 aria-hidden="true" />
+                <span>Delete</span>
+              </button>
+            </div>
+          </div>
+
           <div className="panel-heading">
             <div>
               <span>Palette</span>
@@ -1922,7 +4812,7 @@ function WorldCreatorPage({ activePage, onNavigate }) {
             </div>
           ) : (
             <div className="world-viewport-frame">
-              <WorldViewport world={worldDocument} />
+              <WorldViewport key={activeWorldId} world={worldDocument} worldTargets={worldTargets} onTravel={activateWorld} />
             </div>
           )}
           <div className="creator-status-strip">
@@ -1993,7 +4883,7 @@ function WorldCreatorPage({ activePage, onNavigate }) {
           <div className="panel-heading compact-heading">
             <div>
               <span>{selectedCell ? selectedCell.label : "No cell selected"}</span>
-              <small>{selectedCell ? `${selectedCell.x + 1}.${selectedCell.y + 1}` : "Select a grid cell"}</small>
+              <small>{selectedCell ? `${selectedCell.layer} ${selectedCell.x + 1}.${selectedCell.y + 1}` : "Select a grid cell"}</small>
             </div>
             <ClipboardCheck aria-hidden="true" />
           </div>
@@ -2031,6 +4921,70 @@ function WorldCreatorPage({ activePage, onNavigate }) {
                 onChange={(event) => updateSelectedCell({ elevation: Number(event.target.value) || 0 })}
               />
             </label>
+            {selectedCell?.type === "structure" && selectedCell.itemId === "door" ? (
+              <label className="door-link-field">
+                <span>
+                  <DoorOpen aria-hidden="true" />
+                  Door Destination
+                </span>
+                <select value={selectedDoorTargetId} onChange={(event) => updateSelectedDoorTarget(event.target.value)}>
+                  <option value="">Unlinked</option>
+                  {selectedDoorTargetMissing ? (
+                    <option value={selectedDoorTargetId}>Missing saved world</option>
+                  ) : null}
+                  {availableDoorTargets.length ? (
+                    availableDoorTargets.map((world) => (
+                      <option key={world.id} value={world.id}>
+                        {world.meta.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>
+                      Create another world to link
+                    </option>
+                  )}
+                </select>
+              </label>
+            ) : null}
+            {selectedAsset && isCharacterAsset(selectedAsset) ? (
+              <div className="combat-editor" aria-label="Character combat settings">
+                <label>
+                  <span>
+                    <ShieldCheck aria-hidden="true" />
+                    Role
+                  </span>
+                  <select
+                    value={selectedCell?.combat?.role ?? selectedAsset.combat?.role ?? "neutral"}
+                    onChange={(event) => updateSelectedCombatRole(event.target.value)}
+                  >
+                    {combatRoles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="combat-stat-grid">
+                  {combatStatFields.map((field) => (
+                    <label key={field.id}>
+                      <span>{field.label}</span>
+                      <input
+                        type="number"
+                        min={field.min}
+                        max={field.max}
+                        step={field.step}
+                        value={selectedCombatStats?.[field.id] ?? getDefaultCombatStats(selectedAsset)[field.id]}
+                        onChange={(event) => updateSelectedCombatStat(field.id, event.target.value)}
+                      />
+                    </label>
+                  ))}
+                </div>
+                <button type="button" className="wide-action subtle-action" onClick={resetSelectedCombatDefaults}>
+                  <RefreshCw aria-hidden="true" />
+                  <span>Reset Character Defaults</span>
+                </button>
+              </div>
+            ) : null}
             <label>
               <span>
                 <Tags aria-hidden="true" />
@@ -2068,7 +5022,7 @@ function WorldCreatorPage({ activePage, onNavigate }) {
           <div className="panel-heading">
             <div>
               <span>Agent Handoff</span>
-              <small>{schemaView === "json" ? "World JSON" : "Generation brief"}</small>
+              <small>{schemaView === "json" ? "World JSON" : schemaView === "brief" ? "Generation brief" : "OpenAI prompt"}</small>
             </div>
             <WandSparkles aria-hidden="true" />
           </div>
@@ -2080,20 +5034,50 @@ function WorldCreatorPage({ activePage, onNavigate }) {
             <button type="button" className={schemaView === "brief" ? "active" : ""} onClick={() => setSchemaView("brief")}>
               Brief
             </button>
-          </div>
-
-          <textarea className="schema-output" readOnly value={schemaView === "json" ? worldJson : agentBrief} />
-
-          <div className="agent-actions">
-            <button type="button" onClick={() => copyText(worldJson, "World JSON")}>
-              <Copy aria-hidden="true" />
-              <span>Copy JSON</span>
-            </button>
-            <button type="button" onClick={() => copyText(agentBrief, "Agent brief")}>
-              <ClipboardCheck aria-hidden="true" />
-              <span>Copy Brief</span>
+            <button type="button" className={schemaView === "generate" ? "active" : ""} onClick={() => setSchemaView("generate")}>
+              Generate
             </button>
           </div>
+
+          {schemaView === "generate" ? (
+            <>
+              <textarea
+                className="schema-output world-prompt-output"
+                aria-label="World generation prompt"
+                value={worldPrompt}
+                onChange={(event) => setWorldPrompt(event.target.value)}
+              />
+              <div className={`world-generator-status${canGenerateWorld ? " ready" : ""}${worldApiError ? " error" : ""}`}>
+                {worldGenerationStatus}
+              </div>
+            </>
+          ) : (
+            <textarea className="schema-output" readOnly value={schemaOutputValue} />
+          )}
+
+          {schemaView === "generate" ? (
+            <div className="agent-actions">
+              <button type="button" disabled={!canGenerateWorld} onClick={generateWorldFromPrompt}>
+                {isGeneratingWorld ? <RefreshCw aria-hidden="true" /> : <WandSparkles aria-hidden="true" />}
+                <span>{isGeneratingWorld ? "Generating" : "Generate World"}</span>
+              </button>
+              <button type="button" onClick={refreshWorldStatus}>
+                <RefreshCw aria-hidden="true" />
+                <span>Status</span>
+              </button>
+            </div>
+          ) : (
+            <div className="agent-actions">
+              <button type="button" onClick={() => copyText(worldJson, "World JSON")}>
+                <Copy aria-hidden="true" />
+                <span>Copy JSON</span>
+              </button>
+              <button type="button" onClick={() => copyText(agentBrief, "Agent brief")}>
+                <ClipboardCheck aria-hidden="true" />
+                <span>Copy Brief</span>
+              </button>
+            </div>
+          )}
 
           <div className="validation-list">
             {validation.map((item) => (
@@ -2124,37 +5108,49 @@ function WorldCreatorPage({ activePage, onNavigate }) {
   );
 }
 
-function getInitialPage() {
-  if (window.location.hash.replace("#", "").startsWith("world")) return "world";
-  return "viewer";
+function getNavigationState() {
+  const currentHash = window.location.hash.replace("#", "");
+  const activeTab = pageTabs.find((tab) => tab.id === currentHash);
+  if (activeTab) return { page: activeTab.page, tab: activeTab.id };
+  if (currentHash.startsWith("world")) return { page: "world", tab: "world" };
+  return { page: "viewer", tab: "viewer" };
 }
 
 function App() {
-  const [activePage, setActivePage] = useState(getInitialPage);
+  const [navigationState, setNavigationState] = useState(getNavigationState);
 
   useEffect(() => {
     function handleHashChange() {
-      setActivePage(getInitialPage());
+      setNavigationState(getNavigationState());
     }
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  function navigate(page) {
-    setActivePage(page);
-    const nextHash = page === "world" ? "#world" : "#viewer";
-    if (window.location.hash !== nextHash) {
-      window.location.hash = nextHash;
+  function navigate(tabId) {
+    const nextTab = pageTabs.find((tab) => tab.id === tabId) ?? pageTabs[0];
+    if (window.location.hash !== nextTab.hash) {
+      window.location.hash = nextTab.hash;
     }
+    setNavigationState(getNavigationState());
   }
 
+  const activePage = navigationState.page;
+  const activeTab = navigationState.tab;
+
   return (
-    <main className={`app-shell ${activePage === "world" ? "world-shell" : "viewer-shell"}`}>
+    <main
+      className={`app-shell ${
+        activePage === "world" ? "world-shell" : activePage === "generator" ? "generator-shell" : "viewer-shell"
+      }`}
+    >
       <div className="ambient-lines" aria-hidden="true" />
       {activePage === "world" ? (
-        <WorldCreatorPage activePage={activePage} onNavigate={navigate} />
+        <WorldCreatorPage activeTab={activeTab} onNavigate={navigate} />
+      ) : activePage === "generator" ? (
+        <AssetGeneratorPage activeTab={activeTab} onNavigate={navigate} />
       ) : (
-        <AssetViewerPage activePage={activePage} onNavigate={navigate} />
+        <AssetViewerPage activeTab={activeTab} onNavigate={navigate} />
       )}
     </main>
   );

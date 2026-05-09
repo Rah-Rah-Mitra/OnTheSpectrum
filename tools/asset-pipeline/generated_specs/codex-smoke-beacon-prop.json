@@ -1,0 +1,37 @@
+{
+  "slug": "codex-smoke-beacon-prop",
+  "assetFamily": "prop",
+  "pipelineId": "prop.static_or_turntable",
+  "name": "Codex Smoke Beacon Prop",
+  "subject": "A compact stylized test beacon prop for validating one-click generation",
+  "visualStyle": "Stylized Artomata procedural asset with readable silhouette and polished materials",
+  "requiredParts": [
+    "round primary core",
+    "equator band",
+    "base cap",
+    "small accent nodes"
+  ],
+  "materialPalette": [
+    "deep teal enamel",
+    "warm brass accent",
+    "dark graphite base",
+    "soft cyan highlight"
+  ],
+  "rigTarget": "none",
+  "animationClips": [],
+  "viewerFraming": "Centered front-quarter viewer framing with full object visible",
+  "budget": {
+    "maxTriangles": 100000,
+    "maxMaterials": 16,
+    "maxGlbMb": 12,
+    "approvedOverBudget": false
+  },
+  "vfx": null,
+  "character": null,
+  "furniture": null,
+  "plant": null,
+  "prop": {
+    "category": "test beacon",
+    "displayMotion": "static showcase prop"
+  }
+}

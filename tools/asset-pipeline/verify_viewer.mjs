@@ -241,6 +241,17 @@ async function main() {
     return evaluate(`document.querySelector('canvas')?.toDataURL('image/png').length || 0`);
   }
 
+  async function clickByAria(label) {
+    const selector = `[aria-label="${label}"]`;
+    return evaluate(`(() => {
+      const button = document.querySelector(${JSON.stringify(selector)});
+      if (!button) return false;
+      button.scrollIntoView({ block: 'center', inline: 'center' });
+      button.click();
+      return true;
+    })()`);
+  }
+
   await cdp.send("Page.navigate", { url });
   await delay(900);
   const desktopReady = await waitForAsset("Painter Chibi", "30,724");
@@ -275,12 +286,12 @@ async function main() {
     ])),
     inspectorText: document.querySelector('.inspector')?.innerText || '',
   })`);
-  await evaluate(`document.querySelector('[aria-label="Select Blaster Runner"]')?.click();`);
+  await clickByAria("Select Blaster Runner");
   const blasterReady = await waitForAsset("Blaster Runner", "27,556");
   await delay(300);
   const blasterCanvasDataLength = await canvasDataLength();
   const blasterIdleInitiallyActive = await evaluate(`Boolean(document.querySelector('[aria-label="Select Idle animation"][aria-pressed="true"]'))`);
-  await evaluate(`document.querySelector('[aria-label="Select Run animation"]')?.click();`);
+  await clickByAria("Select Run animation");
   await delay(300);
   const blasterState = await evaluate(`({
     selected: Boolean(document.querySelector('[aria-label="Select Blaster Runner"][aria-pressed="true"]')),
@@ -293,7 +304,7 @@ async function main() {
     ])),
     inspectorText: document.querySelector('.inspector')?.innerText || '',
   })`);
-  await evaluate(`document.querySelector('[aria-label="Select Flower"]')?.click();`);
+  await clickByAria("Select Flower");
   const flowerReady = await waitForAsset("Flower", "60,952");
   await delay(300);
   const flowerCanvasDataLength = await canvasDataLength();
@@ -306,7 +317,7 @@ async function main() {
     ])),
     inspectorText: document.querySelector('.inspector')?.innerText || '',
   })`);
-  await evaluate(`document.querySelector('[aria-label="Select Chair"]')?.click();`);
+  await clickByAria("Select Chair");
   const chairReady = await waitForAsset("Chair", "12,956");
   await delay(300);
   const chairCanvasDataLength = await canvasDataLength();
@@ -320,7 +331,7 @@ async function main() {
     ])),
     inspectorText: document.querySelector('.inspector')?.innerText || '',
   })`);
-  await evaluate(`document.querySelector('[aria-label="Select Forge Workbench"]')?.click();`);
+  await clickByAria("Select Forge Workbench");
   const forgeReady = await waitForAsset("Forge Workbench", "28,856");
   await delay(300);
   const forgeCanvasDataLength = await canvasDataLength();
@@ -334,7 +345,7 @@ async function main() {
     ])),
     inspectorText: document.querySelector('.inspector')?.innerText || '',
   })`);
-  await evaluate(`document.querySelector('[aria-label="Select Tree"]')?.click();`);
+  await clickByAria("Select Tree");
   const treeReady = await waitForAsset("Tree", "20,388");
   await delay(300);
   const treeCanvasDataLength = await canvasDataLength();
@@ -348,28 +359,47 @@ async function main() {
     ])),
     inspectorText: document.querySelector('.inspector')?.innerText || '',
   })`);
+  await clickByAria("Select Violet Rift");
+  const portalReady = await waitForAsset("Violet Rift", "83,740");
+  await delay(300);
+  const portalCanvasDataLength = await canvasDataLength();
+  const portalState = await evaluate(`({
+    selected: Boolean(document.querySelector('[aria-label="Select Violet Rift"][aria-pressed="true"]')),
+    loopActive: Boolean(document.querySelector('[aria-label="Select Portal Loop animation"][aria-pressed="true"]')),
+    statusText: document.querySelector('.status-strip')?.innerText || '',
+    exports: Object.fromEntries([...document.querySelectorAll('.export-menu-list a')].map((link) => [
+      link.getAttribute('aria-label'),
+      { href: link.getAttribute('href'), download: link.getAttribute('download') },
+    ])),
+    inspectorText: document.querySelector('.inspector')?.innerText || '',
+  })`);
 
   await cdp.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   await cdp.send("Page.navigate", { url });
   await delay(900);
   const mobileReady = await waitForAsset("Painter Chibi", "30,724");
-  await evaluate(`document.querySelector('[aria-label="Select Blaster Runner"]')?.click();`);
+  await clickByAria("Select Blaster Runner");
   const mobileBlasterReady = await waitForAsset("Blaster Runner", "27,556");
   const mobileBlasterCanvasDataLength = await canvasDataLength();
-  await evaluate(`document.querySelector('[aria-label="Select Flower"]')?.click();`);
+  await clickByAria("Select Flower");
   const mobileFlowerReady = await waitForAsset("Flower", "60,952");
   const mobileFlowerSelected = await evaluate(`Boolean(document.querySelector('[aria-label="Select Flower"][aria-pressed="true"]'))`);
-  await evaluate(`document.querySelector('[aria-label="Select Chair"]')?.click();`);
+  await clickByAria("Select Chair");
   const mobileChairReady = await waitForAsset("Chair", "12,956");
   const mobileChairCanvasDataLength = await canvasDataLength();
   const mobileChairSelected = await evaluate(`Boolean(document.querySelector('[aria-label="Select Chair"][aria-pressed="true"]'))`);
-  await evaluate(`document.querySelector('[aria-label="Select Forge Workbench"]')?.click();`);
+  await clickByAria("Select Forge Workbench");
   const mobileForgeReady = await waitForAsset("Forge Workbench", "28,856");
   const mobileForgeCanvasDataLength = await canvasDataLength();
   const mobileForgeSelected = await evaluate(`Boolean(document.querySelector('[aria-label="Select Forge Workbench"][aria-pressed="true"]'))`);
-  await evaluate(`document.querySelector('[aria-label="Select Tree"]')?.click();`);
+  await clickByAria("Select Tree");
   const mobileTreeReady = await waitForAsset("Tree", "20,388");
   const mobileTreeCanvasDataLength = await canvasDataLength();
+  const mobileTreeSelected = await evaluate(`Boolean(document.querySelector('[aria-label="Select Tree"][aria-pressed="true"]'))`);
+  await clickByAria("Select Violet Rift");
+  const mobilePortalReady = await waitForAsset("Violet Rift", "83,740");
+  const mobilePortalCanvasDataLength = await canvasDataLength();
+  const mobilePortalSelected = await evaluate(`Boolean(document.querySelector('[aria-label="Select Violet Rift"][aria-pressed="true"]'))`);
   const mobileState = await evaluate(`({
     horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
     bodyText: document.body.innerText.slice(0, 500),
@@ -377,7 +407,8 @@ async function main() {
     selectedFlower: ${mobileFlowerSelected},
     selectedChair: ${mobileChairSelected},
     selectedForge: ${mobileForgeSelected},
-    selectedTree: Boolean(document.querySelector('[aria-label="Select Tree"][aria-pressed="true"]')),
+    selectedTree: ${mobileTreeSelected},
+    selectedPortal: ${mobilePortalSelected},
   })`);
   const mobileShot = await cdp.send("Page.captureScreenshot", { format: "png", fromSurface: true });
   const mobilePath = path.join(qaDir, "artomata-assets-mobile.png");
@@ -403,18 +434,21 @@ async function main() {
     chairReady,
     forgeReady,
     treeReady,
+    portalReady,
     mobileReady,
     mobileBlasterReady,
     mobileFlowerReady,
     mobileChairReady,
     mobileForgeReady,
     mobileTreeReady,
+    mobilePortalReady,
     chibiState,
     blasterState,
     flowerState,
     chairState,
     forgeState,
     treeState,
+    portalState,
     mobileState,
     consoleIssues: relevantConsoleIssues,
     screenshots: [desktopPath, mobilePath],
@@ -428,22 +462,26 @@ async function main() {
             chairReady.ready &&
             forgeReady.ready &&
             treeReady.ready &&
+            portalReady.ready &&
             mobileReady.ready &&
             mobileBlasterReady.ready &&
             mobileFlowerReady.ready &&
             mobileChairReady.ready &&
             mobileForgeReady.ready &&
-            mobileTreeReady.ready,
+            mobileTreeReady.ready &&
+            mobilePortalReady.ready,
         ) &&
         chibiCanvasDataLength > 5000 &&
         blasterCanvasDataLength > 5000 &&
         chairCanvasDataLength > 5000 &&
         forgeCanvasDataLength > 5000 &&
         treeCanvasDataLength > 5000 &&
+        portalCanvasDataLength > 5000 &&
         mobileBlasterCanvasDataLength > 5000 &&
         mobileChairCanvasDataLength > 5000 &&
         mobileForgeCanvasDataLength > 5000 &&
         mobileTreeCanvasDataLength > 5000 &&
+        mobilePortalCanvasDataLength > 5000 &&
         flowerCanvasDataLength > 5000,
       noFrameworkOverlay: !mobileState.bodyText.includes("Internal server error"),
       spinToggle: Boolean(afterPlay && chibiState.spinPaused),
@@ -521,8 +559,24 @@ async function main() {
         !treeState.exports["Download OBJ ZIP"] &&
         treeState.inspectorText.includes("Animated procedural tree showcase") &&
         treeState.inspectorText.includes("layered natural green canopy clusters"),
+      portalSelection:
+        portalState.selected &&
+        portalState.loopActive &&
+        portalState.statusText.includes("Portal Loop clip") &&
+        portalState.inspectorText.includes("Looping stylized fantasy portal showcase") &&
+        portalState.inspectorText.includes("Floating broken basalt ring"),
+      portalExportLinks:
+        portalState.exports["Download Web GLB"]?.href === "/models/violet-rift-portal.glb" &&
+        portalState.exports["Download Web GLB"]?.download === "violet-rift-portal.glb" &&
+        portalState.exports["Download Blender source"]?.href === "/models/violet-rift-portal.blend" &&
+        !portalState.exports["Download Mixamo FBX"] &&
+        !portalState.exports["Download OBJ ZIP"],
       mobileSelection: Boolean(
-        mobileState.selectedFlower && mobileState.selectedChair && mobileState.selectedForge && mobileState.selectedTree,
+        mobileState.selectedFlower &&
+          mobileState.selectedChair &&
+          mobileState.selectedForge &&
+          mobileState.selectedTree &&
+          mobileState.selectedPortal,
       ),
       mobileNoHorizontalOverflow: mobileState.horizontalOverflow === false,
       consoleHealth: relevantConsoleIssues.length === 0,

@@ -1,0 +1,146 @@
+{
+  "asset": "Violet Rift Portal",
+  "slug": "violet-rift-portal",
+  "generator": "create_violet_rift_portal.py",
+  "spec": {
+    "slug": "violet-rift-portal",
+    "asset_family": "VFX",
+    "vfx_family": "portal",
+    "subject": "Free-floating vertical fantasy rift portal",
+    "visual_style": "Stylized fantasy VFX, readable from the existing Three.js viewer",
+    "required_parts": [
+      "floating broken stone ring",
+      "swirling inner energy disk",
+      "small orbiting sparks",
+      "faint ground glow"
+    ],
+    "material_palette": [
+      "violet emissive core",
+      "cyan emissive highlights",
+      "dark basalt opaque stones",
+      "soft white spark tips",
+      "transparent violet and cyan glow planes"
+    ],
+    "rig_target": "simple transform rig",
+    "animation_clips": [
+      "Loop_PortalSwirl"
+    ],
+    "duration_seconds": 4.0,
+    "loop": true,
+    "emission_source": "free-floating vertical ring",
+    "transparency_style": "additive-style emissive transparent glow mixed with opaque stone meshes",
+    "viewer_framing": "centered 3/4 front view showing the full vertical ring and faint ground glow"
+  },
+  "paths": {
+    "blend": "public/models/violet-rift-portal.blend",
+    "glb": "public/models/violet-rift-portal.glb",
+    "preview": "public/renders/violet-rift-portal-preview.png",
+    "metadata": "public/models/violet-rift-portal.metadata.json"
+  },
+  "counts": {
+    "objects": 70,
+    "mesh_objects": 61,
+    "geometry_objects": 61,
+    "materials": 7,
+    "triangles": 83740,
+    "bones": 0,
+    "animations": 1,
+    "authored_actions": 6
+  },
+  "materials": [
+    "MAT_VioletRift_BasaltVioletEdge",
+    "MAT_VioletRift_BrightVioletRibbon",
+    "MAT_VioletRift_CyanHighlight",
+    "MAT_VioletRift_DarkBasaltStone",
+    "MAT_VioletRift_FaintGroundGlow",
+    "MAT_VioletRift_SoftWhiteSparkTip",
+    "MAT_VioletRift_TransparentVioletCore"
+  ],
+  "animations": {
+    "clips": [
+      "Loop_PortalSwirl"
+    ],
+    "default": "Loop_PortalSwirl",
+    "embedded_in_glb": true,
+    "duration_seconds": 4.0,
+    "loop": true,
+    "authored_actions": [
+      "ACT_VFX_VioletRift_BrightInnerPulseDisk_Pulse",
+      "ACT_VFX_VioletRift_TransparentEnergyDisk_Pulse",
+      "ACT_VioletRift_InnerSparkDriftRoot_Loop",
+      "ACT_VioletRift_InnerSwirlRoot_Loop",
+      "ACT_VioletRift_OuterSparkOrbitRoot_Loop",
+      "ACT_VioletRift_RingShardRoot_Loop"
+    ]
+  },
+  "rig": {
+    "type": "simple transform rig",
+    "root": "violet_rift_portal_model_root",
+    "animated_controls": [
+      "ANIM_VioletRift_RingShardRoot",
+      "ANIM_VioletRift_InnerSwirlRoot",
+      "ANIM_VioletRift_OuterSparkOrbitRoot",
+      "ANIM_VioletRift_InnerSparkDriftRoot"
+    ],
+    "stable_parts": [
+      "ground glow",
+      "base energy disk"
+    ],
+    "animated_parts": [
+      "broken ring shards",
+      "swirl ribbons",
+      "orbiting sparks"
+    ]
+  },
+  "vfx": {
+    "family": "portal",
+    "emission_source": "free-floating vertical ring",
+    "transparency_style": "GLB-compatible emissive alpha-blended meshes approximating additive glow",
+    "texture_dependencies": []
+  },
+  "bounds": {
+    "min": [
+      -1.3415,
+      -0.6084,
+      -0.0551
+    ],
+    "max": [
+      1.3002,
+      0.6084,
+      2.4888
+    ],
+    "size": [
+      2.6417,
+      1.2168,
+      2.5439
+    ],
+    "center": [
+      -0.0207,
+      0.0,
+      1.2168
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912,
+    "material_warning": 16
+  },
+  "file_sizes": {
+    "blend_bytes": 1359105,
+    "glb_bytes": 1830796,
+    "preview_bytes": 1863974
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": true,
+    "source": "Blender procedural asset pipeline"
+  },
+  "notes": [
+    "Violet Rift Portal generated procedurally in Blender as the VFX source of truth.",
+    "The portal uses GLB-compatible baked meshes, bevelled curves converted to mesh, transparent emissive disks, and transform animation.",
+    "Particle-like sparks are authored as small animated mesh spheres and curve trails, not browser-only particles.",
+    "Mixamo exports are intentionally omitted because this is a non-humanoid VFX asset."
+  ]
+}
