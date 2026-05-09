@@ -223,7 +223,7 @@ async function generateWorld({ prompt = "", currentWorld = {} } = {}) {
       {
         role: "system",
         content:
-          "You create one Artomata world-grid JSON document from a prompt. Use only the supplied palette itemIds. Structures must use type structure and layer structure; assets must use type asset and layer occupant. Keep x/y integer coordinates inside the grid. Use at most one structure and one occupant per cell. Do not create linked multi-world output; always set targetWorldId to null. Return concise tags and notes that explain layout intent.",
+          "You create one Artomata world-grid JSON document from a prompt. Use only the supplied palette itemIds. Structures must use type structure and layer structure; assets must use type asset and layer occupant. Keep x/y integer coordinates inside the grid. Use at most one structure and one occupant per cell. When placing a playable character on a spawn tile, set combat.role to player. Do not create linked multi-world output; always set targetWorldId to null. Return concise tags and notes that explain layout intent.",
       },
       {
         role: "user",
