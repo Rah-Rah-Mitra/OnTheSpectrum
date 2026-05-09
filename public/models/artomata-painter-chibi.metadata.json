@@ -1,0 +1,121 @@
+{
+  "asset": "Artomata Painter Chibi",
+  "slug": "artomata-painter-chibi",
+  "generator": "add_mixamo_exports_and_animations.py",
+  "paths": {
+    "blend": "public/models/artomata-painter-chibi.blend",
+    "glb": "public/models/artomata-painter-chibi.glb",
+    "preview": "public/renders/artomata-painter-chibi-preview.png",
+    "metadata": "public/models/artomata-painter-chibi.metadata.json"
+  },
+  "counts": {
+    "objects": 52,
+    "mesh_objects": 47,
+    "materials": 16,
+    "triangles": 30724,
+    "bones": 19,
+    "animations": 2
+  },
+  "materials": [
+    "MAT_Accent_EmissiveCyan",
+    "MAT_Base_MatteSlate",
+    "MAT_Boots_Charcoal",
+    "MAT_Eye_GlossCatchlight",
+    "MAT_Eye_IrisCyanGlow",
+    "MAT_Eye_SoftWhite",
+    "MAT_Hair_InkViolet",
+    "MAT_Outfit_ApronIvory",
+    "MAT_Outfit_JacketTeal",
+    "MAT_Outfit_TrimCoral",
+    "MAT_Prop_BristleGold",
+    "MAT_Prop_StylusBrushedMetal",
+    "MAT_Satchel_LeatherWarm",
+    "MAT_Shadow_BakedSoftContact",
+    "MAT_Skin_Blush_Baked",
+    "MAT_Skin_WarmCel"
+  ],
+  "animations": {
+    "clips": [
+      "Idle_Stationary",
+      "Walk_InPlace"
+    ],
+    "default": "Idle_Stationary",
+    "embedded_in_glb": true
+  },
+  "bounds": {
+    "min": [
+      -0.9072,
+      -0.9434,
+      -0.0425
+    ],
+    "max": [
+      1.4872,
+      0.78,
+      3.0872
+    ],
+    "size": [
+      2.3944,
+      1.7234,
+      3.1297
+    ],
+    "center": [
+      0.29,
+      -0.0817,
+      1.5223
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912
+  },
+  "file_sizes": {
+    "blend_bytes": 687213,
+    "glb_bytes": 1179448,
+    "preview_bytes": 2172543,
+    "mixamo_fbx_bytes": 1715340,
+    "mixamo_obj_zip_bytes": 605939
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": true,
+    "source": "Blender MCP live bridge"
+  },
+  "notes": [
+    "Default clips are embedded in the web GLB: Idle_Stationary and Walk_InPlace.",
+    "Mixamo FBX is a best-effort upload file using the current stylized rig.",
+    "Mixamo exports are front-corrected with a 180-degree forward-axis flip; the Blender source and web GLB keep the authored -Y front.",
+    "Display base and contact-shadow extras are excluded from Mixamo exports."
+  ],
+  "armature": {
+    "objects": [
+      "RIG_ArtomataPainter_BasicArmature"
+    ],
+    "bones": [
+      "foot.L",
+      "foot.R",
+      "forearm.L",
+      "forearm.R",
+      "hair",
+      "hand.L",
+      "hand.R",
+      "head",
+      "pelvis",
+      "root",
+      "satchel",
+      "shin.L",
+      "shin.R",
+      "spine",
+      "stylus",
+      "thigh.L",
+      "thigh.R",
+      "upper_arm.L",
+      "upper_arm.R"
+    ]
+  },
+  "exports": {
+    "mixamo_fbx": "public/exports/artomata-painter-chibi/artomata-painter-chibi-mixamo.fbx",
+    "mixamo_obj_zip": "public/exports/artomata-painter-chibi/artomata-painter-chibi-mixamo-obj.zip"
+  }
+}

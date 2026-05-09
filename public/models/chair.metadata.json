@@ -1,0 +1,75 @@
+{
+  "asset": "Chair",
+  "slug": "chair",
+  "generator": "create_chair.py",
+  "paths": {
+    "blend": "public/models/chair.blend",
+    "glb": "public/models/chair.glb",
+    "preview": "public/renders/chair-preview.png",
+    "metadata": "public/models/chair.metadata.json"
+  },
+  "counts": {
+    "objects": 40,
+    "mesh_objects": 36,
+    "geometry_objects": 36,
+    "materials": 4,
+    "triangles": 12956,
+    "bones": 0,
+    "animations": 0
+  },
+  "materials": [
+    "MAT_Chair_CharcoalFabric",
+    "MAT_Chair_OakEndgrain",
+    "MAT_Chair_WarmOak",
+    "MAT_Shadow_BakedSoftContact"
+  ],
+  "animations": {
+    "clips": [],
+    "default": null,
+    "embedded_in_glb": false
+  },
+  "bounds": {
+    "min": [
+      -0.441,
+      -0.3076,
+      0.0
+    ],
+    "max": [
+      0.441,
+      0.3476,
+      1.1
+    ],
+    "size": [
+      0.882,
+      0.6552,
+      1.1
+    ],
+    "center": [
+      0.0,
+      0.02,
+      0.55
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912,
+    "material_warning": 16
+  },
+  "file_sizes": {
+    "blend_bytes": 220474,
+    "glb_bytes": 306208,
+    "preview_bytes": 1811552
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": false,
+    "source": "Blender MCP live bridge"
+  },
+  "notes": [
+    "Standard dining-style chair generated procedurally in Blender.",
+    "Intentionally static furniture asset: no rig, no embedded animation clips, and no Mixamo exports.",
+    "Warm oak frame, visible geometric wood grain, charcoal cushion, foot stretchers, and baked contact shadow."
+  ]
+}

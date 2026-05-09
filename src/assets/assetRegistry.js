@@ -1,0 +1,348 @@
+export const assetRegistry = [
+  {
+    id: "artomata-painter-chibi",
+    name: "Artomata Painter Chibi",
+    shortName: "Painter Chibi",
+    description: "Original rig-ready anime mascot generated procedurally in Blender.",
+    modelUrl: "/models/artomata-painter-chibi.glb",
+    blendUrl: "/models/artomata-painter-chibi.blend",
+    previewUrl: "/renders/artomata-painter-chibi-preview.png",
+    metadataUrl: "/models/artomata-painter-chibi.metadata.json",
+    downloadName: "artomata-painter-chibi.glb",
+    blendDownloadName: "artomata-painter-chibi.blend",
+    snapshotName: "artomata-painter-chibi-snapshot.png",
+    sourceLabel: "Blender MCP",
+    defaultAnimation: "Idle_Stationary",
+    animationClips: [
+      { name: "Idle_Stationary", label: "Idle" },
+      { name: "Walk_InPlace", label: "Walk" },
+    ],
+    exports: [
+      {
+        id: "web-glb",
+        label: "Web GLB",
+        detail: "Animated viewer file",
+        href: "/models/artomata-painter-chibi.glb",
+        downloadName: "artomata-painter-chibi.glb",
+      },
+      {
+        id: "mixamo-fbx",
+        label: "Mixamo FBX",
+        detail: "Best-effort rigged upload",
+        href: "/exports/artomata-painter-chibi/artomata-painter-chibi-mixamo.fbx",
+        downloadName: "artomata-painter-chibi-mixamo.fbx",
+      },
+      {
+        id: "mixamo-obj-zip",
+        label: "OBJ ZIP",
+        detail: "Unrigged Mixamo fallback",
+        href: "/exports/artomata-painter-chibi/artomata-painter-chibi-mixamo-obj.zip",
+        downloadName: "artomata-painter-chibi-mixamo-obj.zip",
+      },
+      {
+        id: "blend",
+        label: "Blender source",
+        detail: "Animated source scene",
+        href: "/models/artomata-painter-chibi.blend",
+        downloadName: "artomata-painter-chibi.blend",
+      },
+    ],
+    placement: {
+      mode: "floor-y",
+      offset: [0, 0, 0],
+    },
+    initialTransform: {
+      rotation: [0, 0, 0],
+      scale: 1,
+    },
+    camera: {
+      desktop: {
+        position: [1.65, 1.5, 6.35],
+        target: [0, 1.42, 0],
+      },
+      mobile: {
+        position: [0.95, 1.22, 6.3],
+        target: [0, 1.52, 0],
+      },
+      focus: {
+        position: [0.85, 1.95, 4.15],
+        target: [0, 2.08, 0],
+      },
+    },
+    authored: {
+      family: "Character",
+      target: "Rig-ready web showcase",
+      rig: "Basic named armature",
+      effects: "Baked blush, eye layers, cloth shadows, cyan paint glow",
+      sourceScene: "public/models/artomata-painter-chibi.blend",
+      preview: "public/renders/artomata-painter-chibi-preview.png",
+    },
+    metadataFallback: {
+      counts: {
+        mesh_objects: 47,
+        geometry_objects: 47,
+        triangles: 30724,
+        materials: 16,
+        bones: 19,
+        animations: 2,
+      },
+      bounds: {
+        size: [2.5933, 1.6419, 3.1325],
+      },
+      file_sizes: {
+        glb_bytes: 1179448,
+      },
+    },
+  },
+  {
+    id: "toon-blaster-runner",
+    name: "Toon Blaster Runner",
+    shortName: "Blaster Runner",
+    description: "Bright toon humanoid character with a stylized sci-fi blaster, generated procedurally in Blender.",
+    modelUrl: "/models/toon-blaster-runner.glb",
+    blendUrl: "/models/toon-blaster-runner.blend",
+    previewUrl: "/renders/toon-blaster-runner-preview.png",
+    metadataUrl: "/models/toon-blaster-runner.metadata.json",
+    downloadName: "toon-blaster-runner.glb",
+    blendDownloadName: "toon-blaster-runner.blend",
+    snapshotName: "toon-blaster-runner-snapshot.png",
+    sourceLabel: "Blender MCP",
+    defaultAnimation: "Idle_Stationary",
+    animationClips: [
+      { name: "Idle_Stationary", label: "Idle" },
+      { name: "Walk_InPlace", label: "Walk" },
+      { name: "Run_InPlace", label: "Run" },
+    ],
+    exports: [
+      {
+        id: "web-glb",
+        label: "Web GLB",
+        detail: "Animated viewer file",
+        href: "/models/toon-blaster-runner.glb",
+        downloadName: "toon-blaster-runner.glb",
+      },
+      {
+        id: "mixamo-fbx",
+        label: "Mixamo FBX",
+        detail: "Best-effort rigged upload",
+        href: "/exports/toon-blaster-runner/toon-blaster-runner-mixamo.fbx",
+        downloadName: "toon-blaster-runner-mixamo.fbx",
+      },
+      {
+        id: "mixamo-obj-zip",
+        label: "OBJ ZIP",
+        detail: "Unrigged Mixamo fallback",
+        href: "/exports/toon-blaster-runner/toon-blaster-runner-mixamo-obj.zip",
+        downloadName: "toon-blaster-runner-mixamo-obj.zip",
+      },
+      {
+        id: "blend",
+        label: "Blender source",
+        detail: "Animated source scene",
+        href: "/models/toon-blaster-runner.blend",
+        downloadName: "toon-blaster-runner.blend",
+      },
+    ],
+    placement: {
+      mode: "floor-y",
+      offset: [0, 0, 0],
+    },
+    initialTransform: {
+      rotation: [0, 0, 0],
+      scale: 1,
+    },
+    camera: {
+      desktop: {
+        position: [1.95, 1.48, 6.45],
+        target: [0, 1.38, 0],
+      },
+      mobile: {
+        position: [1.05, 1.26, 6.65],
+        target: [0, 1.5, 0],
+      },
+      focus: {
+        position: [0.98, 1.92, 4.2],
+        target: [0.18, 2.02, 0],
+      },
+    },
+    authored: {
+      family: "Character",
+      target: "Humanoid toon action showcase",
+      rig: "Basic humanoid Mixamo best-effort armature",
+      effects: "Rounded toon body, coral-gold outfit accents, cyan hair streak, blaster muzzle glow, and baked contact shadow",
+      sourceScene: "public/models/toon-blaster-runner.blend",
+      preview: "public/renders/toon-blaster-runner-preview.png",
+    },
+    metadataFallback: {
+      counts: {
+        mesh_objects: 47,
+        geometry_objects: 47,
+        triangles: 27556,
+        materials: 15,
+        bones: 20,
+        animations: 3,
+      },
+      bounds: {
+        size: [2.7605, 1.717, 2.9752],
+      },
+      file_sizes: {
+        glb_bytes: 1093380,
+      },
+    },
+  },
+  {
+    id: "chair",
+    name: "Chair",
+    shortName: "Chair",
+    description: "Standard dining-style chair with a warm oak frame and charcoal cushion, generated procedurally in Blender.",
+    modelUrl: "/models/chair.glb",
+    blendUrl: "/models/chair.blend",
+    previewUrl: "/renders/chair-preview.png",
+    metadataUrl: "/models/chair.metadata.json",
+    downloadName: "chair.glb",
+    blendDownloadName: "chair.blend",
+    snapshotName: "chair-snapshot.png",
+    sourceLabel: "Blender MCP",
+    defaultAnimation: "",
+    animationClips: [],
+    exports: [
+      {
+        id: "web-glb",
+        label: "Web GLB",
+        detail: "Static viewer file",
+        href: "/models/chair.glb",
+        downloadName: "chair.glb",
+      },
+      {
+        id: "blend",
+        label: "Blender source",
+        detail: "Static source scene",
+        href: "/models/chair.blend",
+        downloadName: "chair.blend",
+      },
+    ],
+    placement: {
+      mode: "floor-y",
+      offset: [0, 0, 0],
+    },
+    initialTransform: {
+      rotation: [0, -0.32, 0],
+      scale: 1,
+    },
+    camera: {
+      desktop: {
+        position: [1.35, 0.82, 2.85],
+        target: [0, 0.52, 0],
+      },
+      mobile: {
+        position: [0.7, 0.72, 3.25],
+        target: [0, 0.52, 0],
+      },
+      focus: {
+        position: [0.82, 0.66, 1.75],
+        target: [0, 0.55, 0],
+      },
+    },
+    authored: {
+      family: "Furniture",
+      target: "Static furniture showcase",
+      rig: "Unrigged static mesh",
+      effects: "Warm oak frame, charcoal cushion, visible geometric wood grain, foot stretchers, and baked contact shadow",
+      sourceScene: "public/models/chair.blend",
+      preview: "public/renders/chair-preview.png",
+    },
+    metadataFallback: {
+      counts: {
+        mesh_objects: 36,
+        geometry_objects: 36,
+        triangles: 12956,
+        materials: 4,
+        bones: 0,
+        animations: 0,
+      },
+      bounds: {
+        size: [0.882, 0.6552, 1.1],
+      },
+      file_sizes: {
+        glb_bytes: 306208,
+      },
+    },
+  },
+  {
+    id: "flower",
+    name: "Blender MCP Flower",
+    shortName: "Flower",
+    description: "Procedural blossom with petal rings, pollen beads, curved stem, leaf veins, and a display base.",
+    modelUrl: "/models/flower.glb",
+    blendUrl: "/models/flower.blend",
+    previewUrl: "/renders/flower-preview.png",
+    metadataUrl: "/models/flower.metadata.json",
+    downloadName: "flower.glb",
+    blendDownloadName: "flower.blend",
+    snapshotName: "flower-viewer-snapshot.png",
+    sourceLabel: "Blender MCP",
+    defaultAnimation: "Sway_Gentle",
+    animationClips: [{ name: "Sway_Gentle", label: "Sway" }],
+    exports: [
+      {
+        id: "web-glb",
+        label: "Web GLB",
+        detail: "Animated viewer file",
+        href: "/models/flower.glb",
+        downloadName: "flower.glb",
+      },
+      {
+        id: "blend",
+        label: "Blender source",
+        detail: "Animated source scene",
+        href: "/models/flower.blend",
+        downloadName: "flower.blend",
+      },
+    ],
+    placement: {
+      mode: "center",
+      offset: [0, -0.42, 0],
+    },
+    initialTransform: {
+      rotation: [0, 0.35, 0],
+      scale: 0.92,
+    },
+    camera: {
+      desktop: {
+        position: [2.55, 1.18, 6.15],
+        target: [0, 0.2, 1.35],
+      },
+      mobile: {
+        position: [1.15, 1.05, 7.35],
+        target: [0, 0.18, 1.22],
+      },
+      focus: {
+        position: [1.55, 0.86, 3.15],
+        target: [0, 0.55, 1.92],
+      },
+    },
+    authored: {
+      family: "Botanical",
+      target: "Procedural GLB showcase",
+      rig: "Static mesh asset",
+      effects: "Layered petals, raised leaf veins, warm pollen beads, and matte display base",
+      sourceScene: "public/models/flower.blend",
+      preview: "public/renders/flower-preview.png",
+    },
+    metadataFallback: {
+      counts: {
+        mesh_objects: 135,
+        geometry_objects: 140,
+        triangles: 60952,
+        materials: 9,
+        bones: 0,
+        animations: 1,
+      },
+      file_sizes: {
+        glb_bytes: 1195308,
+      },
+    },
+  },
+];
+
+export const defaultAssetId = "artomata-painter-chibi";

@@ -1,0 +1,126 @@
+{
+  "asset": "Toon Blaster Runner",
+  "slug": "toon-blaster-runner",
+  "generator": "create_toon_blaster_runner.py",
+  "paths": {
+    "blend": "public/models/toon-blaster-runner.blend",
+    "glb": "public/models/toon-blaster-runner.glb",
+    "preview": "public/renders/toon-blaster-runner-preview.png",
+    "metadata": "public/models/toon-blaster-runner.metadata.json"
+  },
+  "counts": {
+    "objects": 52,
+    "mesh_objects": 47,
+    "geometry_objects": 47,
+    "materials": 15,
+    "triangles": 27556,
+    "bones": 20,
+    "animations": 3
+  },
+  "materials": [
+    "MAT_Accent_CoralTrim",
+    "MAT_Accent_WarmGold",
+    "MAT_Base_MatteGraphite",
+    "MAT_Boots_Charcoal",
+    "MAT_Energy_CyanGlow",
+    "MAT_Eye_CyanIrisGlow",
+    "MAT_Eye_SoftWhite",
+    "MAT_Hair_DeepInk",
+    "MAT_Outfit_DarkTealPanels",
+    "MAT_Outfit_TealSuit",
+    "MAT_Prop_BlasterDarkGrip",
+    "MAT_Prop_BlasterGunmetal",
+    "MAT_Shadow_BakedSoftContact",
+    "MAT_Skin_CoralBlush",
+    "MAT_Skin_WarmToon"
+  ],
+  "animations": {
+    "clips": [
+      "Idle_Stationary",
+      "Run_InPlace",
+      "Walk_InPlace"
+    ],
+    "default": "Idle_Stationary",
+    "embedded_in_glb": true
+  },
+  "bounds": {
+    "min": [
+      -0.7803,
+      -0.967,
+      -0.0475
+    ],
+    "max": [
+      1.9802,
+      0.75,
+      2.9277
+    ],
+    "size": [
+      2.7605,
+      1.717,
+      2.9752
+    ],
+    "center": [
+      0.6,
+      -0.1085,
+      1.4401
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912,
+    "material_warning": 16
+  },
+  "file_sizes": {
+    "blend_bytes": 640931,
+    "glb_bytes": 1093380,
+    "preview_bytes": 1712050,
+    "mixamo_fbx_bytes": 1688204,
+    "mixamo_obj_zip_bytes": 548212
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": true,
+    "source": "Blender MCP live bridge"
+  },
+  "exports": {
+    "mixamo_fbx": "public/exports/toon-blaster-runner/toon-blaster-runner-mixamo.fbx",
+    "mixamo_obj_zip": "public/exports/toon-blaster-runner/toon-blaster-runner-mixamo-obj.zip"
+  },
+  "armature": {
+    "objects": [
+      "RIG_ToonBlasterRunner_BasicArmature"
+    ],
+    "bones": [
+      "blaster",
+      "chest",
+      "foot.L",
+      "foot.R",
+      "forearm.L",
+      "forearm.R",
+      "hair",
+      "hand.L",
+      "hand.R",
+      "head",
+      "neck",
+      "pelvis",
+      "root",
+      "shin.L",
+      "shin.R",
+      "spine",
+      "thigh.L",
+      "thigh.R",
+      "upper_arm.L",
+      "upper_arm.R"
+    ],
+    "rig_depth": "basic humanoid armature with whole-part vertex groups"
+  },
+  "notes": [
+    "Original bright toon humanoid character carrying a stylized sci-fi blaster.",
+    "Embedded GLB clips: Idle_Stationary, Walk_InPlace, and Run_InPlace.",
+    "Mixamo FBX and OBJ ZIP are best-effort exports; stylized proportions, weapon geometry, and whole-part weights may need manual Mixamo adjustment.",
+    "Mixamo exports are front-corrected with a 180-degree forward-axis flip; the Blender source and web GLB keep the authored -Y front.",
+    "Display base and contact-shadow extras are excluded from Mixamo exports."
+  ]
+}

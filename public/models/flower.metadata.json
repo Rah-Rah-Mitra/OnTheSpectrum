@@ -1,0 +1,80 @@
+{
+  "asset": "Blender MCP Flower",
+  "slug": "flower",
+  "generator": "add_mixamo_exports_and_animations.py",
+  "paths": {
+    "blend": "public/models/flower.blend",
+    "glb": "public/models/flower.glb",
+    "preview": "public/renders/flower-preview.png",
+    "metadata": "public/models/flower.metadata.json"
+  },
+  "counts": {
+    "objects": 145,
+    "mesh_objects": 135,
+    "geometry_objects": 140,
+    "materials": 9,
+    "triangles": 60952,
+    "bones": 0,
+    "animations": 1
+  },
+  "materials": [
+    "center_amber_seeds",
+    "center_golden_pollen",
+    "leaf_lime_veins",
+    "leaf_variegated_green",
+    "matte_charcoal_base",
+    "petal_coral_gradient_base",
+    "petal_soft_blush",
+    "petal_warm_rose",
+    "stem_moss_green"
+  ],
+  "animations": {
+    "clips": [
+      "Sway_Gentle"
+    ],
+    "default": "Sway_Gentle",
+    "embedded_in_glb": true
+  },
+  "bounds": {
+    "min": [
+      -0.8812,
+      -0.725,
+      -0.0425
+    ],
+    "max": [
+      1.0644,
+      0.62,
+      3.7366
+    ],
+    "size": [
+      1.9456,
+      1.345,
+      3.7791
+    ],
+    "center": [
+      0.0916,
+      -0.0525,
+      1.8471
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912
+  },
+  "file_sizes": {
+    "blend_bytes": 264324,
+    "glb_bytes": 1195308,
+    "preview_bytes": 1889724
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": true,
+    "source": "Blender MCP live bridge"
+  },
+  "notes": [
+    "Flower sway is embedded as a non-Mixamo transform animation.",
+    "Mixamo exports are intentionally omitted because Mixamo auto-rigging is humanoid-only."
+  ]
+}
