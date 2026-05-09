@@ -1,0 +1,98 @@
+{
+  "asset": "Tavern Wooden Table",
+  "slug": "tavern-wooden-table",
+  "generator": "create_tavern_wooden_table.py",
+  "spec": {
+    "slug": "tavern-wooden-table",
+    "asset_family": "Furniture",
+    "subject": "Round wooden tavern table",
+    "visual_style": "Stylized medieval fantasy, chunky readable shapes, game-ready prop scale",
+    "required_parts": [
+      "round wooden tabletop",
+      "four sturdy legs",
+      "cross supports",
+      "slight wear marks",
+      "carved edge detail",
+      "contact shadow"
+    ],
+    "material_palette": [
+      "medium brown wood",
+      "darker worn edges",
+      "subtle scratches and dents",
+      "soft translucent contact shadow"
+    ],
+    "rig_target": "none",
+    "animation_clips": [],
+    "viewer_framing": "3/4 top-down view, showing tabletop and legs clearly on a neutral background"
+  },
+  "paths": {
+    "blend": "public/models/tavern-wooden-table.blend",
+    "glb": "public/models/tavern-wooden-table.glb",
+    "preview": "public/renders/tavern-wooden-table-preview.png",
+    "metadata": "public/models/tavern-wooden-table.metadata.json"
+  },
+  "counts": {
+    "objects": 51,
+    "mesh_objects": 47,
+    "geometry_objects": 47,
+    "materials": 4,
+    "triangles": 17156,
+    "bones": 0,
+    "animations": 0
+  },
+  "materials": [
+    "MAT_TavernTable_DarkWornEdges",
+    "MAT_TavernTable_MediumWood",
+    "MAT_TavernTable_ScratchDent",
+    "MAT_TavernTable_Shadow"
+  ],
+  "animations": {
+    "clips": [],
+    "default": null,
+    "embedded_in_glb": false
+  },
+  "bounds": {
+    "min": [
+      -0.7305,
+      -0.7239,
+      0.0
+    ],
+    "max": [
+      0.7305,
+      0.7239,
+      0.87
+    ],
+    "size": [
+      1.461,
+      1.4478,
+      0.87
+    ],
+    "center": [
+      0.0,
+      0.0,
+      0.435
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912,
+    "material_warning": 16
+  },
+  "file_sizes": {
+    "blend_bytes": 219259,
+    "glb_bytes": 416272,
+    "preview_bytes": 1874028
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": false,
+    "source": "Blender procedural asset pipeline"
+  },
+  "notes": [
+    "Stylized medieval fantasy tavern table generated procedurally in Blender.",
+    "Intentionally static furniture asset: no rig, no embedded animation clips, and no Mixamo exports.",
+    "Built from chunky round tabletop forms, four sturdy legs, cross supports, carved dark edge marks, and subtle scratch/dent wear."
+  ]
+}

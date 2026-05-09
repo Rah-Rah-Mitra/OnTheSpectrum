@@ -1,0 +1,135 @@
+{
+  "asset": "Forest Ranger NPC",
+  "slug": "forest-ranger-npc",
+  "generator": "create_forest_ranger_npc.py",
+  "paths": {
+    "blend": "public/models/forest-ranger-npc.blend",
+    "glb": "public/models/forest-ranger-npc.glb",
+    "preview": "public/renders/forest-ranger-npc-preview.png",
+    "metadata": "public/models/forest-ranger-npc.metadata.json"
+  },
+  "counts": {
+    "objects": 64,
+    "mesh_objects": 59,
+    "geometry_objects": 59,
+    "materials": 16,
+    "triangles": 26520,
+    "bones": 25,
+    "animations": 6
+  },
+  "materials": [
+    "MAT_Arrow_SteelTips",
+    "MAT_Base_MatteMossStone",
+    "MAT_Boots_MudBrown",
+    "MAT_Bow_WarmWood",
+    "MAT_Cloak_DarkForestGreen",
+    "MAT_Cloak_ShadowGreen",
+    "MAT_Eye_ForestIris",
+    "MAT_Eye_SoftWhite",
+    "MAT_Gloves_DarkBrown",
+    "MAT_Hair_BarkBrown",
+    "MAT_Leather_BrownArmor",
+    "MAT_Leather_DarkTrim",
+    "MAT_Quiver_OliveLeather",
+    "MAT_Shadow_BakedSoftContact",
+    "MAT_Skin_WarmFocused",
+    "MAT_Straps_Tan"
+  ],
+  "animations": {
+    "clips": [
+      "Aim_Hold",
+      "DrawBow",
+      "Idle_Stationary",
+      "Run_InPlace",
+      "Shoot_Release",
+      "Walk_InPlace"
+    ],
+    "default": "Idle_Stationary",
+    "embedded_in_glb": true
+  },
+  "bounds": {
+    "min": [
+      -1.0108,
+      -1.113,
+      -0.0475
+    ],
+    "max": [
+      1.0362,
+      0.78,
+      2.7352
+    ],
+    "size": [
+      2.047,
+      1.893,
+      2.7827
+    ],
+    "center": [
+      0.0127,
+      -0.1665,
+      1.3438
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912,
+    "material_warning": 16
+  },
+  "file_sizes": {
+    "blend_bytes": 661070,
+    "glb_bytes": 1178324,
+    "preview_bytes": 1641497,
+    "mixamo_fbx_bytes": 2207084,
+    "mixamo_obj_zip_bytes": 519467
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": true,
+    "source": "Blender MCP live bridge or configured background Blender"
+  },
+  "exports": {
+    "mixamo_fbx": "public/exports/forest-ranger-npc/forest-ranger-npc-mixamo.fbx",
+    "mixamo_obj_zip": "public/exports/forest-ranger-npc/forest-ranger-npc-mixamo-obj.zip"
+  },
+  "armature": {
+    "objects": [
+      "RIG_ForestRangerNPC_BasicArmature"
+    ],
+    "bones": [
+      "arrow_hand",
+      "bow",
+      "chest",
+      "cloak.L",
+      "cloak.R",
+      "cloak_back",
+      "foot.L",
+      "foot.R",
+      "forearm.L",
+      "forearm.R",
+      "hand.L",
+      "hand.R",
+      "head",
+      "hood",
+      "neck",
+      "pelvis",
+      "quiver",
+      "root",
+      "shin.L",
+      "shin.R",
+      "spine",
+      "thigh.L",
+      "thigh.R",
+      "upper_arm.L",
+      "upper_arm.R"
+    ],
+    "rig_depth": "basic humanoid Mixamo best-effort armature with whole-part vertex groups"
+  },
+  "notes": [
+    "Original stylized fantasy adventure ranger with hooded cloak, leather armor, pouches, quiver, bow, gloves, boots, and calm focused face.",
+    "Embedded GLB clips: Idle_Stationary, Walk_InPlace, Run_InPlace, DrawBow, Aim_Hold, and Shoot_Release.",
+    "Mixamo FBX and OBJ ZIP are best-effort exports; stylized proportions, bow/quiver geometry, cloak pieces, and whole-part weights may need manual Mixamo adjustment.",
+    "Mixamo exports are front-corrected with a 180-degree forward-axis flip; the Blender source and web GLB keep the authored -Y front.",
+    "Display base and contact-shadow extras are excluded from Mixamo exports."
+  ]
+}

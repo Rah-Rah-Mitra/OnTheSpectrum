@@ -1,0 +1,129 @@
+{
+  "asset": "Goblin Grunt Enemy",
+  "slug": "goblin-grunt-enemy",
+  "generator": "create_goblin_grunt_enemy.py",
+  "paths": {
+    "blend": "public/models/goblin-grunt-enemy.blend",
+    "glb": "public/models/goblin-grunt-enemy.glb",
+    "preview": "public/renders/goblin-grunt-enemy-preview.png",
+    "metadata": "public/models/goblin-grunt-enemy.metadata.json"
+  },
+  "counts": {
+    "objects": 70,
+    "mesh_objects": 65,
+    "geometry_objects": 65,
+    "materials": 13,
+    "triangles": 13268,
+    "bones": 22,
+    "animations": 6
+  },
+  "materials": [
+    "MAT_Base_MatteGraphite",
+    "MAT_Claws_DarkHorn",
+    "MAT_Cloth_DarkPatch",
+    "MAT_Cloth_DirtyBrown",
+    "MAT_Eye_InkPupil",
+    "MAT_Eye_SicklyAmber",
+    "MAT_Metal_DullShieldRim",
+    "MAT_Shadow_BakedSoftContact",
+    "MAT_Shield_BatteredCore",
+    "MAT_Skin_DarkerOlive",
+    "MAT_Skin_OliveGoblin",
+    "MAT_Teeth_Bone",
+    "MAT_Wood_DarkClub"
+  ],
+  "animations": {
+    "clips": [
+      "Attack_Swing",
+      "Death",
+      "Hit_Reaction",
+      "Idle_Stationary",
+      "Run_InPlace",
+      "Walk_InPlace"
+    ],
+    "default": "Idle_Stationary",
+    "embedded_in_glb": true
+  },
+  "bounds": {
+    "min": [
+      -0.74,
+      -0.74,
+      -0.0475
+    ],
+    "max": [
+      1.3687,
+      1.6911,
+      1.3766
+    ],
+    "size": [
+      2.1087,
+      2.4311,
+      1.4241
+    ],
+    "center": [
+      0.3144,
+      0.4756,
+      0.6645
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912,
+    "material_warning": 16
+  },
+  "file_sizes": {
+    "blend_bytes": 384608,
+    "glb_bytes": 708864,
+    "preview_bytes": 1618527,
+    "mixamo_fbx_bytes": 1883564,
+    "mixamo_obj_zip_bytes": 259062
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": true,
+    "source": "Blender Python asset generator"
+  },
+  "exports": {
+    "mixamo_fbx": "public/exports/goblin-grunt-enemy/goblin-grunt-enemy-mixamo.fbx",
+    "mixamo_obj_zip": "public/exports/goblin-grunt-enemy/goblin-grunt-enemy-mixamo-obj.zip"
+  },
+  "armature": {
+    "objects": [
+      "RIG_GoblinGruntEnemy_BasicArmature"
+    ],
+    "bones": [
+      "chest",
+      "club",
+      "ear.L",
+      "ear.R",
+      "foot.L",
+      "foot.R",
+      "forearm.L",
+      "forearm.R",
+      "hand.L",
+      "hand.R",
+      "head",
+      "neck",
+      "pelvis",
+      "root",
+      "shield",
+      "shin.L",
+      "shin.R",
+      "spine",
+      "thigh.L",
+      "thigh.R",
+      "upper_arm.L",
+      "upper_arm.R"
+    ],
+    "rig_depth": "basic humanoid armature with whole-part vertex groups"
+  },
+  "notes": [
+    "Original stylized low-poly fantasy grunt enemy with exaggerated ears, sharp teeth, ragged cloth armor, club, shield, and claws.",
+    "Embedded GLB clips: Idle_Stationary, Walk_InPlace, Run_InPlace, Attack_Swing, Hit_Reaction, and Death.",
+    "Mixamo FBX and OBJ ZIP are best-effort exports; stylized proportions, exaggerated ears, weapon geometry, shield geometry, and whole-part weights may need manual Mixamo adjustment.",
+    "Mixamo exports are front-corrected with a 180-degree forward-axis flip; the Blender source and web GLB keep the authored -Y front.",
+    "Display base and contact-shadow extras are excluded from Mixamo exports."
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "asset": "Blacksmith Forge Workbench",
+  "slug": "blacksmith-forge-workbench",
+  "generator": "create_blacksmith_forge_workbench.py",
+  "spec": {
+    "slug": "blacksmith-forge-workbench",
+    "asset_family": "Furniture",
+    "subject": "Blacksmith forge workbench",
+    "visual_style": "Stylized fantasy workshop furniture, rugged, functional, and game-ready",
+    "required_parts": [
+      "heavy wooden bench",
+      "anvil surface",
+      "scattered tools",
+      "hammer rack",
+      "tongs",
+      "metal scraps",
+      "orange ember accents",
+      "soot marks"
+    ],
+    "material_palette": [
+      "dark rough wood",
+      "dark endgrain and soot stains",
+      "blackened iron",
+      "brushed steel tool heads",
+      "orange ember emission accents",
+      "soft translucent contact shadow"
+    ],
+    "rig_target": "none",
+    "animation_clips": [],
+    "viewer_framing": "3/4 view with a slightly elevated camera so the tabletop tools read clearly"
+  },
+  "paths": {
+    "blend": "public/models/blacksmith-forge-workbench.blend",
+    "glb": "public/models/blacksmith-forge-workbench.glb",
+    "preview": "public/renders/blacksmith-forge-workbench-preview.png",
+    "metadata": "public/models/blacksmith-forge-workbench.metadata.json"
+  },
+  "counts": {
+    "objects": 94,
+    "mesh_objects": 90,
+    "geometry_objects": 90,
+    "materials": 8,
+    "triangles": 28856,
+    "bones": 0,
+    "animations": 0
+  },
+  "materials": [
+    "MAT_ForgeBench_BlackenedIron",
+    "MAT_ForgeBench_BrushedSteelTools",
+    "MAT_ForgeBench_DarkEndgrain",
+    "MAT_ForgeBench_DarkRoughWood",
+    "MAT_ForgeBench_DarkSteelWear",
+    "MAT_ForgeBench_EmberOrangeGlow",
+    "MAT_ForgeBench_SootMarks",
+    "MAT_Shadow_BakedSoftContact"
+  ],
+  "animations": {
+    "clips": [],
+    "default": null,
+    "embedded_in_glb": false
+  },
+  "bounds": {
+    "min": [
+      -1.044,
+      -0.648,
+      0.0
+    ],
+    "max": [
+      1.044,
+      0.648,
+      1.2725
+    ],
+    "size": [
+      2.088,
+      1.296,
+      1.2725
+    ],
+    "center": [
+      0.0,
+      0.0,
+      0.6363
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912,
+    "material_warning": 16
+  },
+  "file_sizes": {
+    "blend_bytes": 349032,
+    "glb_bytes": 705776,
+    "preview_bytes": 1767304
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": false,
+    "source": "Blender MCP live bridge or background Blender"
+  },
+  "notes": [
+    "Blacksmith forge workbench generated procedurally in Blender.",
+    "Intentionally static furniture asset: no rig, no embedded animation clips, and no Mixamo exports.",
+    "Includes heavy dark-wood bench, anvil surface, hammer rack, tongs, scattered tools, steel scraps, soot marks, ember accents, and baked contact shadow."
+  ]
+}

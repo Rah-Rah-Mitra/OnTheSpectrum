@@ -54,6 +54,7 @@ function encodeClientFrame(payloadText) {
 async function connectCdp(wsUrl) {
   const target = new URL(wsUrl);
   const host = target.hostname;
+  const targetPort = Number(target.port || port);
   const key = crypto.randomBytes(16).toString("base64");
   let socket;
   let frameBuffer = Buffer.alloc(0);
@@ -71,6 +72,13 @@ async function connectCdp(wsUrl) {
       return;
     }
     events.push(message);
+  }
+
+  function rejectPending(error) {
+    for (const [id, { reject }] of pending) {
+      pending.delete(id);
+      reject(error);
+    }
   }
 
   function decodeFrames() {
@@ -104,12 +112,15 @@ async function connectCdp(wsUrl) {
         payload = unmasked;
       }
       frameBuffer = frameBuffer.subarray(frameEnd);
-      if (opcode === 0x8) return;
+      if (opcode === 0x8) {
+        rejectPending(new Error("Chrome DevTools WebSocket closed"));
+        return;
+      }
       if (opcode === 0x9) {
         socket.write(Buffer.from([0x8a, 0]));
         continue;
       }
-      if (opcode === 0x1 || opcode === 0x0) {
+      if (opcode === 0x1 || opcode === 0x2 || opcode === 0x0) {
         fragments.push(payload);
         if (fin) {
           const text = Buffer.concat(fragments).toString("utf8");
@@ -121,11 +132,11 @@ async function connectCdp(wsUrl) {
   }
 
   await new Promise((resolve, reject) => {
-    socket = net.createConnection({ host, port }, () => {
+    socket = net.createConnection({ host, port: targetPort }, () => {
       socket.write(
         [
           `GET ${target.pathname}${target.search} HTTP/1.1`,
-          `Host: ${host}:${port}`,
+          `Host: ${host}:${targetPort}`,
           "Upgrade: websocket",
           "Connection: Upgrade",
           `Sec-WebSocket-Key: ${key}`,
@@ -156,13 +167,14 @@ async function connectCdp(wsUrl) {
       decodeFrames();
     });
     socket.on("error", reject);
+    socket.on("close", () => rejectPending(new Error("Chrome DevTools WebSocket closed")));
   });
 
   function send(method, params = {}) {
     const id = nextId++;
-    socket.write(encodeClientFrame(JSON.stringify({ id, method, params })));
     return new Promise((resolve, reject) => {
       pending.set(id, { resolve, reject });
+      socket.write(encodeClientFrame(JSON.stringify({ id, method, params })));
       setTimeout(() => {
         if (pending.has(id)) {
           pending.delete(id);
@@ -187,6 +199,7 @@ async function main() {
     "--headless=new",
     "--disable-gpu",
     "--disable-crash-reporter",
+    "--remote-allow-origins=*",
     `--remote-debugging-port=${port}`,
     `--user-data-dir=${userDataDir}`,
     "--window-size=1440,900",
@@ -307,6 +320,20 @@ async function main() {
     ])),
     inspectorText: document.querySelector('.inspector')?.innerText || '',
   })`);
+  await evaluate(`document.querySelector('[aria-label="Select Forge Workbench"]')?.click();`);
+  const forgeReady = await waitForAsset("Forge Workbench", "28,856");
+  await delay(300);
+  const forgeCanvasDataLength = await canvasDataLength();
+  const forgeState = await evaluate(`({
+    selected: Boolean(document.querySelector('[aria-label="Select Forge Workbench"][aria-pressed="true"]')),
+    hasAnimationControl: Boolean(document.querySelector('.animation-control')),
+    statusText: document.querySelector('.status-strip')?.innerText || '',
+    exports: Object.fromEntries([...document.querySelectorAll('.export-menu-list a')].map((link) => [
+      link.getAttribute('aria-label'),
+      { href: link.getAttribute('href'), download: link.getAttribute('download') },
+    ])),
+    inspectorText: document.querySelector('.inspector')?.innerText || '',
+  })`);
   await evaluate(`document.querySelector('[aria-label="Select Tree"]')?.click();`);
   const treeReady = await waitForAsset("Tree", "20,388");
   await delay(300);
@@ -336,6 +363,10 @@ async function main() {
   const mobileChairReady = await waitForAsset("Chair", "12,956");
   const mobileChairCanvasDataLength = await canvasDataLength();
   const mobileChairSelected = await evaluate(`Boolean(document.querySelector('[aria-label="Select Chair"][aria-pressed="true"]'))`);
+  await evaluate(`document.querySelector('[aria-label="Select Forge Workbench"]')?.click();`);
+  const mobileForgeReady = await waitForAsset("Forge Workbench", "28,856");
+  const mobileForgeCanvasDataLength = await canvasDataLength();
+  const mobileForgeSelected = await evaluate(`Boolean(document.querySelector('[aria-label="Select Forge Workbench"][aria-pressed="true"]'))`);
   await evaluate(`document.querySelector('[aria-label="Select Tree"]')?.click();`);
   const mobileTreeReady = await waitForAsset("Tree", "20,388");
   const mobileTreeCanvasDataLength = await canvasDataLength();
@@ -345,6 +376,7 @@ async function main() {
     viewport: { width: window.innerWidth, height: window.innerHeight },
     selectedFlower: ${mobileFlowerSelected},
     selectedChair: ${mobileChairSelected},
+    selectedForge: ${mobileForgeSelected},
     selectedTree: Boolean(document.querySelector('[aria-label="Select Tree"][aria-pressed="true"]')),
   })`);
   const mobileShot = await cdp.send("Page.captureScreenshot", { format: "png", fromSurface: true });
@@ -369,26 +401,49 @@ async function main() {
     blasterReady,
     flowerReady,
     chairReady,
+    forgeReady,
+    treeReady,
     mobileReady,
     mobileBlasterReady,
     mobileFlowerReady,
     mobileChairReady,
+    mobileForgeReady,
+    mobileTreeReady,
     chibiState,
     blasterState,
     flowerState,
     chairState,
+    forgeState,
+    treeState,
     mobileState,
     consoleIssues: relevantConsoleIssues,
     screenshots: [desktopPath, mobilePath],
     checks: {
       pageIdentity: (await evaluate("document.title")) === "Artomata Asset Viewer",
       notBlank:
-        Boolean(desktopReady.ready && blasterReady.ready && flowerReady.ready && chairReady.ready && mobileReady.ready && mobileBlasterReady.ready && mobileFlowerReady.ready && mobileChairReady.ready) &&
+        Boolean(
+          desktopReady.ready &&
+            blasterReady.ready &&
+            flowerReady.ready &&
+            chairReady.ready &&
+            forgeReady.ready &&
+            treeReady.ready &&
+            mobileReady.ready &&
+            mobileBlasterReady.ready &&
+            mobileFlowerReady.ready &&
+            mobileChairReady.ready &&
+            mobileForgeReady.ready &&
+            mobileTreeReady.ready,
+        ) &&
         chibiCanvasDataLength > 5000 &&
         blasterCanvasDataLength > 5000 &&
         chairCanvasDataLength > 5000 &&
+        forgeCanvasDataLength > 5000 &&
+        treeCanvasDataLength > 5000 &&
         mobileBlasterCanvasDataLength > 5000 &&
         mobileChairCanvasDataLength > 5000 &&
+        mobileForgeCanvasDataLength > 5000 &&
+        mobileTreeCanvasDataLength > 5000 &&
         flowerCanvasDataLength > 5000,
       noFrameworkOverlay: !mobileState.bodyText.includes("Internal server error"),
       spinToggle: Boolean(afterPlay && chibiState.spinPaused),
@@ -443,7 +498,32 @@ async function main() {
         chairState.exports["Download Blender source"]?.href === "/models/chair.blend" &&
         !chairState.exports["Download Mixamo FBX"] &&
         !chairState.exports["Download OBJ ZIP"],
-      mobileSelection: Boolean(mobileState.selectedFlower && mobileState.selectedChair),
+      forgeSelection:
+        forgeState.selected &&
+        !forgeState.hasAnimationControl &&
+        forgeState.statusText.includes("Still clip") &&
+        forgeState.inspectorText.includes("Static fantasy workshop furniture showcase") &&
+        forgeState.inspectorText.includes("hammer rack"),
+      forgeExportLinks:
+        forgeState.exports["Download Web GLB"]?.href === "/models/blacksmith-forge-workbench.glb" &&
+        forgeState.exports["Download Web GLB"]?.download === "blacksmith-forge-workbench.glb" &&
+        forgeState.exports["Download Blender source"]?.href === "/models/blacksmith-forge-workbench.blend" &&
+        !forgeState.exports["Download Mixamo FBX"] &&
+        !forgeState.exports["Download OBJ ZIP"],
+      treeSelection:
+        treeState.selected &&
+        treeState.swayActive &&
+        treeState.statusText.includes("Sway clip") &&
+        treeState.exports["Download Web GLB"]?.href === "/models/tree.glb" &&
+        treeState.exports["Download Web GLB"]?.download === "tree.glb" &&
+        treeState.exports["Download Blender source"]?.href === "/models/tree.blend" &&
+        !treeState.exports["Download Mixamo FBX"] &&
+        !treeState.exports["Download OBJ ZIP"] &&
+        treeState.inspectorText.includes("Animated procedural tree showcase") &&
+        treeState.inspectorText.includes("layered natural green canopy clusters"),
+      mobileSelection: Boolean(
+        mobileState.selectedFlower && mobileState.selectedChair && mobileState.selectedForge && mobileState.selectedTree,
+      ),
       mobileNoHorizontalOverflow: mobileState.horizontalOverflow === false,
       consoleHealth: relevantConsoleIssues.length === 0,
     },

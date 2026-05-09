@@ -1,0 +1,98 @@
+{
+  "asset": "Tavern Chair",
+  "slug": "tavern-chair",
+  "generator": "create_tavern_chair.py",
+  "spec": {
+    "slug": "tavern-chair",
+    "asset_family": "Furniture",
+    "subject": "Tavern chair",
+    "visual_style": "Stylized fantasy inn furniture with chunky handcrafted proportions",
+    "required_parts": [
+      "wooden seat",
+      "backrest",
+      "four legs",
+      "cross braces",
+      "small carved details",
+      "contact shadow"
+    ],
+    "material_palette": [
+      "warm brown wood",
+      "darker edge wear",
+      "subtle geometric grain lines",
+      "soft translucent contact shadow"
+    ],
+    "rig_target": "none",
+    "animation_clips": [],
+    "viewer_framing": "3/4 view from slightly above, chair fully visible, readable seat and backrest"
+  },
+  "paths": {
+    "blend": "public/models/tavern-chair.blend",
+    "glb": "public/models/tavern-chair.glb",
+    "preview": "public/renders/tavern-chair-preview.png",
+    "metadata": "public/models/tavern-chair.metadata.json"
+  },
+  "counts": {
+    "objects": 47,
+    "mesh_objects": 43,
+    "geometry_objects": 43,
+    "materials": 4,
+    "triangles": 11128,
+    "bones": 0,
+    "animations": 0
+  },
+  "materials": [
+    "MAT_Shadow_BakedSoftContact",
+    "MAT_TavernChair_DarkEdgeWear",
+    "MAT_TavernChair_GrainLines",
+    "MAT_TavernChair_WarmBrownWood"
+  ],
+  "animations": {
+    "clips": [],
+    "default": null,
+    "embedded_in_glb": false
+  },
+  "bounds": {
+    "min": [
+      -0.483,
+      -0.3756,
+      0.0
+    ],
+    "max": [
+      0.483,
+      0.4156,
+      1.1225
+    ],
+    "size": [
+      0.966,
+      0.7912,
+      1.1225
+    ],
+    "center": [
+      0.0,
+      0.02,
+      0.5613
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912,
+    "material_warning": 16
+  },
+  "file_sizes": {
+    "blend_bytes": 212009,
+    "glb_bytes": 286108,
+    "preview_bytes": 1821546
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": false,
+    "source": "Blender Python procedural generator"
+  },
+  "notes": [
+    "Stylized fantasy tavern chair generated procedurally in Blender.",
+    "Intentionally static furniture asset: no rig, no embedded animation clips, and no Mixamo exports.",
+    "Warm brown wood, darker worn edges, chunky hand-hewn proportions, carved details, subtle geometric grain, and baked contact shadow."
+  ]
+}

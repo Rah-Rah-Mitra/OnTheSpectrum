@@ -45,6 +45,7 @@ import {
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { clone as cloneModel } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { assetRegistry, defaultAssetId } from "./assets/assetRegistry.js";
 import "./styles.css";
 
@@ -391,6 +392,119 @@ function validateWorld(world) {
   ];
 }
 
+const worldViewModes = {
+  grid: { label: "Grid", Icon: Grid2X2 },
+  view3d: { label: "3D", Icon: Box },
+};
+
+const worldAssetCache = new Map();
+const worldPlayerRadius = 0.28;
+const worldEyeHeight = 1.45;
+const worldMoveSpeed = 3.2;
+
+function getWorldDimensions(world) {
+  const columns = clampGridValue(world.grid?.columns ?? defaultWorldMeta.columns, 6, 16);
+  const rows = clampGridValue(world.grid?.rows ?? defaultWorldMeta.rows, 5, 12);
+  const parsedCellSize = Number.parseFloat(String(world.grid?.cellSize ?? defaultWorldMeta.cellSize).replace(/[^\d.-]/g, ""));
+  const cellSize = Number.isFinite(parsedCellSize) ? Math.min(2.4, Math.max(0.75, parsedCellSize)) : 1;
+  return { columns, rows, cellSize };
+}
+
+function getWorldCellCenter(x, y, world, elevation = 0) {
+  const { columns, rows, cellSize } = getWorldDimensions(world);
+  return new THREE.Vector3(
+    (x - (columns - 1) / 2) * cellSize,
+    Number(elevation) || 0,
+    (y - (rows - 1) / 2) * cellSize,
+  );
+}
+
+function getWorldCellKeyFromPosition(position, world, cellSize) {
+  const { columns, rows } = getWorldDimensions(world);
+  const x = Math.round(position.x / cellSize + (columns - 1) / 2);
+  const y = Math.round(position.z / cellSize + (rows - 1) / 2);
+  if (x < 0 || y < 0 || x >= columns || y >= rows) return "";
+  return getCellKey(x, y);
+}
+
+function getWorldSolidKeys(world) {
+  return new Set(world.placements.filter((placement) => placement.type === "structure" && placement.itemId === "wall").map((placement) => getCellKey(placement.x, placement.y)));
+}
+
+function canOccupyWorldPosition(position, world, solidKeys, cellSize) {
+  const radius = worldPlayerRadius * cellSize;
+  const samples = [
+    [0, 0],
+    [radius, 0],
+    [-radius, 0],
+    [0, radius],
+    [0, -radius],
+    [radius, radius],
+    [-radius, radius],
+    [radius, -radius],
+    [-radius, -radius],
+  ];
+  return samples.every(([xOffset, zOffset]) => {
+    const key = getWorldCellKeyFromPosition({ x: position.x + xOffset, z: position.z + zOffset }, world, cellSize);
+    return Boolean(key) && !solidKeys.has(key);
+  });
+}
+
+function getWorldSpawnPose(world) {
+  const { columns, rows, cellSize } = getWorldDimensions(world);
+  const spawn =
+    world.placements.find((placement) => placement.itemId === "spawn") ??
+    world.placements.find((placement) => placement.itemId === "door");
+  const fallback = { x: Math.min(columns - 2, 1), y: Math.min(rows - 2, 1), rotation: 0, elevation: 0 };
+  const anchor = spawn ?? fallback;
+  const position = getWorldCellCenter(anchor.x, anchor.y, world, anchor.elevation);
+  const center = getWorldCellCenter((columns - 1) / 2, (rows - 1) / 2, world, anchor.elevation);
+  const centerYaw = Math.atan2(position.x - center.x, position.z - center.z);
+  const authoredYaw = Number(anchor.rotation);
+  position.y += worldEyeHeight * cellSize;
+  return {
+    position,
+    yaw: Number.isFinite(authoredYaw) && authoredYaw !== 0 ? THREE.MathUtils.degToRad(authoredYaw) : centerYaw,
+  };
+}
+
+function setWorldCameraPose(camera, world) {
+  const pose = getWorldSpawnPose(world);
+  camera.position.copy(pose.position);
+  camera.rotation.set(0, pose.yaw, 0, "YXZ");
+}
+
+function getAssetFitScale(asset, cellSize) {
+  const bounds = asset.metadataFallback?.bounds?.size;
+  if (!bounds?.length) return 0.62 * cellSize;
+  const footprint = Math.max(bounds[0] || 1, bounds[1] || 1, 0.1);
+  return Math.min(0.82, (0.82 * cellSize) / footprint);
+}
+
+function loadWorldAsset(loader, asset) {
+  if (!worldAssetCache.has(asset.modelUrl)) {
+    const assetPromise = loader.loadAsync(asset.modelUrl).then((gltf) => {
+      const model = gltf.scene;
+      placeLoadedModel(model, asset);
+      model.traverse((child) => {
+        if (!child.isMesh) return;
+        child.frustumCulled = true;
+        child.castShadow = false;
+        child.receiveShadow = true;
+        const materialList = Array.isArray(child.material) ? child.material : [child.material];
+        materialList.forEach((material) => {
+          if (!material) return;
+          material.envMapIntensity = 0.45;
+          material.needsUpdate = true;
+        });
+      });
+      return model;
+    });
+    worldAssetCache.set(asset.modelUrl, assetPromise);
+  }
+  return worldAssetCache.get(asset.modelUrl);
+}
+
 function createGradientTexture(top, bottom) {
   const canvas = document.createElement("canvas");
   canvas.width = 2;
@@ -711,6 +825,399 @@ function SceneViewport({ asset, activeClipName, autoSpin, exposure, mode, onLoad
   }, [exposure, mode]);
 
   return <div className="viewport" ref={mountRef} aria-label={`${asset.name} interactive 3D model viewport`} />;
+}
+
+function WorldViewport({ world }) {
+  const mountRef = useRef(null);
+  const stateRef = useRef({
+    renderer: null,
+    camera: null,
+    world,
+    solidKeys: new Set(),
+    cellSize: 1,
+    keys: new Set(),
+    pointerLocked: false,
+    eyeY: worldEyeHeight,
+    resetSpawn: null,
+  });
+  const [worldStatus, setWorldStatus] = useState("Building world");
+  const [assetProgress, setAssetProgress] = useState({ loaded: 0, total: 0 });
+  const [exploring, setExploring] = useState(false);
+  const { columns, rows } = getWorldDimensions(world);
+  const worldReady = worldStatus === "Ready" || worldStatus === "Ready with asset issue";
+
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return undefined;
+
+    let disposed = false;
+    const resources = [];
+    const { columns: worldColumns, rows: worldRows, cellSize } = getWorldDimensions(world);
+    const solidKeys = getWorldSolidKeys(world);
+    const scene = new THREE.Scene();
+    const clock = new THREE.Clock();
+    scene.background = createGradientTexture("#213033", "#060809");
+    scene.fog = new THREE.Fog("#060809", cellSize * 9, cellSize * 26);
+    resources.push(scene.background);
+
+    const camera = new THREE.PerspectiveCamera(70, mount.clientWidth / mount.clientHeight, 0.04, 120);
+    camera.rotation.order = "YXZ";
+    setWorldCameraPose(camera, world);
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      powerPreference: "high-performance",
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(Math.max(1, mount.clientWidth), Math.max(1, mount.clientHeight));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    mount.appendChild(renderer.domElement);
+
+    const hemi = new THREE.HemisphereLight("#fff8e8", "#132223", 1.1);
+    const sun = new THREE.DirectionalLight("#ffe2bf", 2.15);
+    sun.position.set(-4.2, 7.8, 4.8);
+    const fill = new THREE.DirectionalLight("#86e6ec", 0.92);
+    fill.position.set(5.5, 3.4, -5.2);
+    scene.add(hemi, sun, fill);
+
+    function track(resource) {
+      resources.push(resource);
+      return resource;
+    }
+
+    const floorGeometry = track(new THREE.BoxGeometry(cellSize * 0.96, cellSize * 0.08, cellSize * 0.96));
+    const floorMaterial = track(new THREE.MeshStandardMaterial({ color: "#253f3d", roughness: 0.82, metalness: 0.02 }));
+    const floorMesh = new THREE.InstancedMesh(floorGeometry, floorMaterial, worldColumns * worldRows);
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3(1, 1, 1);
+    let floorIndex = 0;
+    for (let y = 0; y < worldRows; y += 1) {
+      for (let x = 0; x < worldColumns; x += 1) {
+        position.copy(getWorldCellCenter(x, y, world, -cellSize * 0.04));
+        matrix.compose(position, quaternion, scale);
+        floorMesh.setMatrixAt(floorIndex, matrix);
+        floorIndex += 1;
+      }
+    }
+    floorMesh.instanceMatrix.needsUpdate = true;
+    scene.add(floorMesh);
+
+    const gridSize = Math.max(worldColumns, worldRows) * cellSize;
+    const gridHelper = new THREE.GridHelper(gridSize, Math.max(worldColumns, worldRows), "#426261", "#253636");
+    gridHelper.position.y = cellSize * 0.025;
+    gridHelper.position.x = ((worldColumns % 2) * cellSize) / 2 - cellSize / 2;
+    gridHelper.position.z = ((worldRows % 2) * cellSize) / 2 - cellSize / 2;
+    resources.push(gridHelper.geometry, gridHelper.material);
+    scene.add(gridHelper);
+
+    const wallPlacements = world.placements.filter((placement) => placement.type === "structure" && placement.itemId === "wall");
+    if (wallPlacements.length) {
+      const wallGeometry = track(new THREE.BoxGeometry(cellSize * 0.95, cellSize * 1.95, cellSize * 0.95));
+      const wallMaterial = track(new THREE.MeshStandardMaterial({ color: "#d6c28d", roughness: 0.76, metalness: 0.04 }));
+      const wallMesh = new THREE.InstancedMesh(wallGeometry, wallMaterial, wallPlacements.length);
+      wallPlacements.forEach((placement, index) => {
+        position.copy(getWorldCellCenter(placement.x, placement.y, world, placement.elevation));
+        position.y += cellSize * 0.975;
+        matrix.compose(position, quaternion, new THREE.Vector3(placement.scale ?? 1, 1, placement.scale ?? 1));
+        wallMesh.setMatrixAt(index, matrix);
+      });
+      wallMesh.instanceMatrix.needsUpdate = true;
+      scene.add(wallMesh);
+    }
+
+    const floorPlacements = world.placements.filter((placement) => placement.type === "structure" && placement.itemId === "floor");
+    if (floorPlacements.length) {
+      const accentFloorGeometry = track(new THREE.BoxGeometry(cellSize * 0.82, cellSize * 0.09, cellSize * 0.82));
+      const accentFloorMaterial = track(new THREE.MeshStandardMaterial({ color: "#315755", roughness: 0.74, metalness: 0.03 }));
+      const accentFloorMesh = new THREE.InstancedMesh(accentFloorGeometry, accentFloorMaterial, floorPlacements.length);
+      floorPlacements.forEach((placement, index) => {
+        position.copy(getWorldCellCenter(placement.x, placement.y, world, (placement.elevation || 0) + cellSize * 0.02));
+        matrix.compose(position, quaternion, new THREE.Vector3(placement.scale ?? 1, 1, placement.scale ?? 1));
+        accentFloorMesh.setMatrixAt(index, matrix);
+      });
+      accentFloorMesh.instanceMatrix.needsUpdate = true;
+      scene.add(accentFloorMesh);
+    }
+
+    const doorMaterial = track(new THREE.MeshStandardMaterial({ color: "#f47d69", roughness: 0.58, metalness: 0.02 }));
+    const doorPostGeometry = track(new THREE.BoxGeometry(cellSize * 0.14, cellSize * 1.45, cellSize * 0.16));
+    const doorBeamGeometry = track(new THREE.BoxGeometry(cellSize * 0.9, cellSize * 0.16, cellSize * 0.18));
+    world.placements
+      .filter((placement) => placement.type === "structure" && placement.itemId === "door")
+      .forEach((placement) => {
+        const group = new THREE.Group();
+        const base = getWorldCellCenter(placement.x, placement.y, world, placement.elevation);
+        group.position.copy(base);
+        group.rotation.y = THREE.MathUtils.degToRad(Number(placement.rotation) || 0);
+        [
+          [-cellSize * 0.38, cellSize * 0.72, 0, doorPostGeometry],
+          [cellSize * 0.38, cellSize * 0.72, 0, doorPostGeometry],
+          [0, cellSize * 1.45, 0, doorBeamGeometry],
+        ].forEach(([x, y, z, geometry]) => {
+          const mesh = new THREE.Mesh(geometry, doorMaterial);
+          mesh.position.set(x, y, z);
+          group.add(mesh);
+        });
+        scene.add(group);
+      });
+
+    const markerGeometry = track(new THREE.BoxGeometry(cellSize * 0.28, cellSize * 0.28, cellSize * 0.28));
+    const lightMaterial = track(new THREE.MeshStandardMaterial({ color: "#28e0ea", emissive: "#28e0ea", emissiveIntensity: 1.55 }));
+    world.placements
+      .filter((placement) => placement.type === "structure" && placement.itemId === "light")
+      .forEach((placement, index) => {
+        const lightMarker = new THREE.Mesh(markerGeometry, lightMaterial);
+        lightMarker.position.copy(getWorldCellCenter(placement.x, placement.y, world, placement.elevation));
+        lightMarker.position.y += cellSize * 1.22;
+        scene.add(lightMarker);
+        if (index < 4) {
+          const point = new THREE.PointLight("#76f8ff", 1.15, cellSize * 5.5, 1.7);
+          point.position.copy(lightMarker.position);
+          scene.add(point);
+        }
+      });
+
+    const spawnGeometry = track(new THREE.BoxGeometry(cellSize * 0.62, cellSize * 0.1, cellSize * 0.62));
+    const spawnMaterial = track(new THREE.MeshStandardMaterial({ color: "#91f0a8", emissive: "#2c8c52", emissiveIntensity: 0.38 }));
+    world.placements
+      .filter((placement) => placement.type === "structure" && placement.itemId === "spawn")
+      .forEach((placement) => {
+        const spawnPad = new THREE.Mesh(spawnGeometry, spawnMaterial);
+        spawnPad.position.copy(getWorldCellCenter(placement.x, placement.y, world, (placement.elevation || 0) + cellSize * 0.04));
+        spawnPad.rotation.y = THREE.MathUtils.degToRad(Number(placement.rotation) || 0);
+        scene.add(spawnPad);
+      });
+
+    const assetGroup = new THREE.Group();
+    scene.add(assetGroup);
+    const loader = new GLTFLoader();
+    const assetPlacements = world.placements.filter((placement) => placement.type === "asset");
+    setAssetProgress({ loaded: 0, total: assetPlacements.length });
+    setWorldStatus(assetPlacements.length ? "Loading assets" : "Ready");
+    Promise.all(
+      assetPlacements.map(async (placement) => {
+        const asset = findAsset(placement.itemId);
+        const baseModel = await loadWorldAsset(loader, asset);
+        if (disposed) return;
+        const model = cloneModel(baseModel);
+        model.position.copy(getWorldCellCenter(placement.x, placement.y, world, placement.elevation));
+        model.rotation.y += THREE.MathUtils.degToRad(Number(placement.rotation) || 0);
+        model.scale.multiplyScalar(getAssetFitScale(asset, cellSize) * (Number(placement.scale) || 1));
+        model.name = `World_${asset.id}_${placement.x}_${placement.y}`;
+        assetGroup.add(model);
+        setAssetProgress((current) => ({ ...current, loaded: Math.min(current.total, current.loaded + 1) }));
+      }),
+    )
+      .then(() => {
+        if (!disposed) {
+          setAssetProgress({ loaded: assetPlacements.length, total: assetPlacements.length });
+          setWorldStatus("Ready");
+        }
+      })
+      .catch(() => {
+        if (!disposed) setWorldStatus("Ready with asset issue");
+      });
+
+    const movement = new THREE.Vector3();
+    const forward = new THREE.Vector3();
+    const right = new THREE.Vector3();
+
+    function resize() {
+      const width = Math.max(1, mount.clientWidth);
+      const height = Math.max(1, mount.clientHeight);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+
+    function handlePointerLockChange() {
+      const locked = document.pointerLockElement === renderer.domElement;
+      stateRef.current.pointerLocked = locked;
+      setExploring(locked);
+      if (!locked) {
+        stateRef.current.keys.clear();
+        if (document.fullscreenElement === mount.parentElement) {
+          document.exitFullscreen?.().catch(() => undefined);
+        }
+      }
+    }
+
+    function handleMouseMove(event) {
+      if (!stateRef.current.pointerLocked) return;
+      const euler = new THREE.Euler(0, 0, 0, "YXZ");
+      euler.setFromQuaternion(camera.quaternion);
+      euler.y -= event.movementX * 0.0021;
+      euler.x -= event.movementY * 0.0021;
+      euler.x = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, euler.x));
+      camera.quaternion.setFromEuler(euler);
+    }
+
+    function handleKeyDown(event) {
+      if (!stateRef.current.pointerLocked) return;
+      if (event.code === "Escape") {
+        event.preventDefault();
+        document.exitPointerLock?.();
+        if (document.fullscreenElement === mount.parentElement) {
+          document.exitFullscreen?.().catch(() => undefined);
+        }
+        return;
+      }
+      if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"].includes(event.code)) {
+        event.preventDefault();
+        stateRef.current.keys.add(event.code);
+      }
+    }
+
+    function handleKeyUp(event) {
+      stateRef.current.keys.delete(event.code);
+    }
+
+    function stepPlayer(delta) {
+      const current = stateRef.current;
+      if (!current.pointerLocked) return;
+      movement.set(0, 0, 0);
+      camera.getWorldDirection(forward);
+      forward.y = 0;
+      forward.normalize();
+      right.crossVectors(forward, camera.up).normalize();
+      if (current.keys.has("KeyW") || current.keys.has("ArrowUp")) movement.add(forward);
+      if (current.keys.has("KeyS") || current.keys.has("ArrowDown")) movement.sub(forward);
+      if (current.keys.has("KeyD") || current.keys.has("ArrowRight")) movement.add(right);
+      if (current.keys.has("KeyA") || current.keys.has("ArrowLeft")) movement.sub(right);
+      if (movement.lengthSq() === 0) return;
+      movement.normalize().multiplyScalar(worldMoveSpeed * cellSize * delta);
+      const next = camera.position.clone().add(movement);
+      next.y = current.eyeY;
+      if (canOccupyWorldPosition(next, world, solidKeys, cellSize)) {
+        camera.position.copy(next);
+        return;
+      }
+      const xOnly = camera.position.clone();
+      xOnly.x = next.x;
+      if (canOccupyWorldPosition(xOnly, world, solidKeys, cellSize)) camera.position.x = next.x;
+      const zOnly = camera.position.clone();
+      zOnly.z = next.z;
+      if (canOccupyWorldPosition(zOnly, world, solidKeys, cellSize)) camera.position.z = next.z;
+    }
+
+    function animate() {
+      const delta = Math.min(clock.getDelta(), 0.05);
+      stepPlayer(delta);
+      renderer.render(scene, camera);
+      stateRef.current.animationId = requestAnimationFrame(animate);
+    }
+
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
+    resizeObserver?.observe(mount);
+    window.addEventListener("resize", resize);
+    document.addEventListener("pointerlockchange", handlePointerLockChange);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keyup", handleKeyUp);
+
+    const spawnPose = getWorldSpawnPose(world);
+    stateRef.current = {
+      renderer,
+      camera,
+      world,
+      solidKeys,
+      cellSize,
+      keys: new Set(),
+      pointerLocked: false,
+      eyeY: spawnPose.position.y,
+      animationId: 0,
+      resetSpawn: () => {
+        setWorldCameraPose(camera, world);
+        stateRef.current.eyeY = getWorldSpawnPose(world).position.y;
+      },
+    };
+    animate();
+
+    return () => {
+      disposed = true;
+      if (document.pointerLockElement === renderer.domElement) document.exitPointerLock?.();
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", resize);
+      document.removeEventListener("pointerlockchange", handlePointerLockChange);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keyup", handleKeyUp);
+      cancelAnimationFrame(stateRef.current.animationId);
+      resources.forEach((resource) => resource?.dispose?.());
+      renderer.dispose();
+      if (renderer.domElement.parentNode === mount) {
+        mount.removeChild(renderer.domElement);
+      }
+    };
+  }, [world]);
+
+  async function enterWorld() {
+    const renderer = stateRef.current.renderer;
+    const mount = mountRef.current;
+    if (!renderer || !mount) return;
+    const shell = mount.parentElement;
+    if (shell?.requestFullscreen && !document.fullscreenElement && window.innerWidth >= 900) {
+      await shell.requestFullscreen().catch(() => undefined);
+    }
+    const lockRequest = renderer.domElement.requestPointerLock?.();
+    lockRequest?.catch?.(() => undefined);
+  }
+
+  async function exitWorld() {
+    if (document.pointerLockElement) document.exitPointerLock?.();
+    if (document.fullscreenElement === mountRef.current?.parentElement) {
+      await document.exitFullscreen?.().catch(() => undefined);
+    }
+  }
+
+  function resetSpawn() {
+    stateRef.current.resetSpawn?.();
+  }
+
+  return (
+    <div
+      className="world-viewport-shell"
+      data-world-status={worldReady ? "ready" : "loading"}
+      data-exploring={exploring ? "true" : "false"}
+      data-world-assets={`${assetProgress.loaded}/${assetProgress.total}`}
+    >
+      <div ref={mountRef} className="world-viewport" aria-label={`${world.name} interactive 3D world`} />
+      <div className="world-viewport-overlay">
+        <div className="world-viewport-actions" aria-label="3D world controls">
+          <button type="button" onClick={enterWorld} disabled={!worldReady}>
+            <DoorOpen aria-hidden="true" />
+            <span>Enter World</span>
+          </button>
+          <button type="button" onClick={exitWorld} disabled={!exploring}>
+            <Pause aria-hidden="true" />
+            <span>Exit</span>
+          </button>
+          <button type="button" onClick={resetSpawn} disabled={!worldReady}>
+            <Sparkles aria-hidden="true" />
+            <span>Reset Spawn</span>
+          </button>
+        </div>
+        <div className="world-viewport-status" aria-label="3D world status">
+          <span>
+            <Box aria-hidden="true" />
+            {worldStatus}
+          </span>
+          <span>
+            <Package aria-hidden="true" />
+            {world.placements.length}
+          </span>
+          <span>
+            <Grid2X2 aria-hidden="true" />
+            {columns} x {rows}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function IconButton({ label, children, onClick, href, download }) {
@@ -1101,11 +1608,16 @@ function WorldCell({ cell, x, y, selected, onClick }) {
   );
 }
 
+function getInitialWorldView() {
+  return window.location.hash.replace("#", "") === "world-3d" ? "view3d" : "grid";
+}
+
 function WorldCreatorPage({ activePage, onNavigate }) {
   const [worldMeta, setWorldMeta] = useState(defaultWorldMeta);
   const [cells, setCells] = useState(() => createStarterWorldCells());
   const [selectedPaletteId, setSelectedPaletteId] = useState(defaultAssetId);
   const [brushMode, setBrushMode] = useState("place");
+  const [worldView, setWorldView] = useState(getInitialWorldView);
   const [selectedKey, setSelectedKey] = useState(getCellKey(3, 3));
   const [importText, setImportText] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
@@ -1144,6 +1656,22 @@ function WorldCreatorPage({ activePage, onNavigate }) {
 
   function navigate(page) {
     onNavigate(page);
+  }
+
+  useEffect(() => {
+    function handleWorldHashChange() {
+      setWorldView(getInitialWorldView());
+    }
+    window.addEventListener("hashchange", handleWorldHashChange);
+    return () => window.removeEventListener("hashchange", handleWorldHashChange);
+  }, []);
+
+  function updateWorldView(nextView) {
+    setWorldView(nextView);
+    const nextHash = nextView === "view3d" ? "#world-3d" : "#world";
+    if (window.location.hash !== nextHash) {
+      window.location.hash = nextHash;
+    }
   }
 
   function updateWorldField(field, value) {
@@ -1295,7 +1823,7 @@ function WorldCreatorPage({ activePage, onNavigate }) {
         </div>
       </header>
 
-      <section className="world-creator" aria-label="World Creator">
+      <section className={`world-creator${worldView === "view3d" ? " world-creator-3d" : ""}`} aria-label="World Creator">
         <aside className="creator-panel palette-panel" aria-label="World palette">
           <div className="panel-heading">
             <div>
@@ -1336,50 +1864,69 @@ function WorldCreatorPage({ activePage, onNavigate }) {
           </div>
         </aside>
 
-        <section className="world-stage-panel" aria-label="Placement grid">
+        <section className={`world-stage-panel${worldView === "view3d" ? " world-3d-active" : ""}`} aria-label="World editor stage">
           <div className="world-stage-heading">
             <div>
               <h1>World Creator</h1>
               <span>{worldMeta.name}</span>
             </div>
-            <div className="world-stats" aria-label="World stats">
-              <span>
-                <Grid2X2 aria-hidden="true" />
-                {worldMeta.columns} x {worldMeta.rows}
-              </span>
-              <span>
-                <Package aria-hidden="true" />
-                {worldDocument.placements.length}
-              </span>
-              <span>
-                <ShieldCheck aria-hidden="true" />
-                {validation.filter((item) => item.ok).length}/{validation.length}
-              </span>
+            <div className="world-stage-actions">
+              <nav className="world-view-tabs" aria-label="World view mode">
+                {Object.entries(worldViewModes).map(([key, item]) => {
+                  const Icon = item.Icon;
+                  return (
+                    <button key={key} type="button" className={worldView === key ? "active" : ""} onClick={() => updateWorldView(key)}>
+                      <Icon aria-hidden="true" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+              <div className="world-stats" aria-label="World stats">
+                <span>
+                  <Grid2X2 aria-hidden="true" />
+                  {worldMeta.columns} x {worldMeta.rows}
+                </span>
+                <span>
+                  <Package aria-hidden="true" />
+                  {worldDocument.placements.length}
+                </span>
+                <span>
+                  <ShieldCheck aria-hidden="true" />
+                  {validation.filter((item) => item.ok).length}/{validation.length}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="world-grid-frame">
-            <div
-              className="world-grid"
-              style={{
-                "--world-columns": worldMeta.columns,
-                "--world-rows": worldMeta.rows,
-              }}
-            >
-              {gridCells.map(({ key, x, y, cell }) => (
-                <WorldCell
-                  key={key}
-                  x={x}
-                  y={y}
-                  cell={cell}
-                  selected={selectedKey === key}
-                  onClick={() => handleCellAction(x, y)}
-                />
-              ))}
+          {worldView === "grid" ? (
+            <div className="world-grid-frame">
+              <div
+                className="world-grid"
+                style={{
+                  "--world-columns": worldMeta.columns,
+                  "--world-rows": worldMeta.rows,
+                }}
+              >
+                {gridCells.map(({ key, x, y, cell }) => (
+                  <WorldCell
+                    key={key}
+                    x={x}
+                    y={y}
+                    cell={cell}
+                    selected={selectedKey === key}
+                    onClick={() => handleCellAction(x, y)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="world-viewport-frame">
+              <WorldViewport world={worldDocument} />
+            </div>
+          )}
           <div className="creator-status-strip">
-            <span>{brushModes[brushMode].label} brush</span>
+            <span>{worldView === "grid" ? `${brushModes[brushMode].label} brush` : "3D preview"}</span>
             <span>{selectedPalette.label}</span>
             <span>{copyStatus || "Autosynced schema"}</span>
           </div>
@@ -1578,7 +2125,7 @@ function WorldCreatorPage({ activePage, onNavigate }) {
 }
 
 function getInitialPage() {
-  if (window.location.hash.replace("#", "") === "world") return "world";
+  if (window.location.hash.replace("#", "").startsWith("world")) return "world";
   return "viewer";
 }
 

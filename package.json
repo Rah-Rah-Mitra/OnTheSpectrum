@@ -12,7 +12,8 @@
     "asset:mixamo-exports": "python tools/asset-pipeline/run_blender_asset.py --script tools/asset-pipeline/regenerate_mixamo_exports.py",
     "asset:inspect": "node tools/asset-pipeline/inspect_glb.mjs public/models/artomata-painter-chibi.glb",
     "asset:validate": "node tools/asset-pipeline/validate_glb_budget.mjs public/models/artomata-painter-chibi.glb",
-    "qa:viewer": "node tools/asset-pipeline/verify_viewer.mjs"
+    "qa:viewer": "node tools/asset-pipeline/verify_viewer.mjs",
+    "qa:world": "node tools/asset-pipeline/verify_world_viewer.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.4",

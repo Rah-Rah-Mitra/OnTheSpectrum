@@ -1,0 +1,105 @@
+{
+  "asset": "Village Market Stall",
+  "slug": "village-market-stall",
+  "generator": "create_village_market_stall.py",
+  "spec": {
+    "slug": "village-market-stall",
+    "asset_family": "Furniture",
+    "subject": "Village Market Stall",
+    "visual_style": "Stylized fantasy village, colorful and modular, suitable for marketplace scenes",
+    "required_parts": [
+      "wooden counter",
+      "canopy frame",
+      "cloth awning",
+      "crates",
+      "display shelves",
+      "hanging hooks",
+      "rope ties",
+      "baked contact shadow"
+    ],
+    "material_palette": [
+      "light brown wood",
+      "faded red-and-cream cloth awning",
+      "rope ties",
+      "darker crate wood",
+      "dark hook metal",
+      "soft translucent contact shadow"
+    ],
+    "rig_target": "none",
+    "animation_clips": [],
+    "viewer_framing": "front 3/4 view, show counter and canopy, asset centered with all parts visible"
+  },
+  "paths": {
+    "blend": "public/models/village-market-stall.blend",
+    "glb": "public/models/village-market-stall.glb",
+    "preview": "public/renders/village-market-stall-preview.png",
+    "metadata": "public/models/village-market-stall.metadata.json"
+  },
+  "counts": {
+    "objects": 91,
+    "mesh_objects": 87,
+    "geometry_objects": 87,
+    "materials": 7,
+    "triangles": 30304,
+    "bones": 0,
+    "animations": 0
+  },
+  "materials": [
+    "MAT_Shadow_BakedSoftContact",
+    "MAT_VillageMarketStall_CreamCloth",
+    "MAT_VillageMarketStall_DarkCrateWood",
+    "MAT_VillageMarketStall_DarkHookMetal",
+    "MAT_VillageMarketStall_FadedRedCloth",
+    "MAT_VillageMarketStall_LightWood",
+    "MAT_VillageMarketStall_RopeTie"
+  ],
+  "animations": {
+    "clips": [],
+    "default": null,
+    "embedded_in_glb": false
+  },
+  "bounds": {
+    "min": [
+      -1.435,
+      -1.1276,
+      0.0
+    ],
+    "max": [
+      1.435,
+      0.8076,
+      2.18
+    ],
+    "size": [
+      2.87,
+      1.9352,
+      2.18
+    ],
+    "center": [
+      0.0,
+      -0.16,
+      1.09
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912,
+    "material_warning": 16
+  },
+  "file_sizes": {
+    "blend_bytes": 328369,
+    "glb_bytes": 686452,
+    "preview_bytes": 1055630
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": false,
+    "source": "Blender MCP live bridge or background Blender"
+  },
+  "notes": [
+    "Village Market Stall generated procedurally in Blender.",
+    "Intentionally static furniture asset: no rig, no embedded animation clips, and no Mixamo exports.",
+    "Stylized modular market prop with wooden counter, canopy frame, striped cloth awning, crates, shelves, rope ties, hooks, and baked contact shadow."
+  ]
+}
