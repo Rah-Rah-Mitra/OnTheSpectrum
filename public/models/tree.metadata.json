@@ -1,0 +1,125 @@
+{
+  "asset": "Tree",
+  "slug": "tree",
+  "generator": "create_tree.py",
+  "spec": {
+    "slug": "tree",
+    "asset_family": "Botanical",
+    "subject": "Standard deciduous tree",
+    "visual_style": "Clean procedural studio tree with softened bark detail and layered leaf masses",
+    "required_parts": [
+      "tapered trunk",
+      "root flare",
+      "main branches",
+      "layered canopy clusters",
+      "bark grooves",
+      "leaf highlights",
+      "soft contact shadow"
+    ],
+    "material_palette": [
+      "warm brown bark",
+      "dark bark grooves",
+      "deep green leaves",
+      "mid-green leaves",
+      "light green leaf highlights",
+      "soft translucent contact shadow"
+    ],
+    "rig_target": "simple transform rig",
+    "animation_clips": [
+      "Sway_Gentle"
+    ],
+    "viewer_framing": "floor-aligned front-quarter full-tree view centered on trunk and canopy"
+  },
+  "paths": {
+    "blend": "public/models/tree.blend",
+    "glb": "public/models/tree.glb",
+    "preview": "public/renders/tree-preview.png",
+    "metadata": "public/models/tree.metadata.json"
+  },
+  "counts": {
+    "objects": 43,
+    "mesh_objects": 37,
+    "geometry_objects": 37,
+    "materials": 7,
+    "triangles": 20388,
+    "bones": 0,
+    "animations": 1
+  },
+  "materials": [
+    "MAT_Shadow_BakedSoftContact",
+    "MAT_Tree_DarkBarkGrooves",
+    "MAT_Tree_DeepGreenLeaves",
+    "MAT_Tree_LightLeafHighlights",
+    "MAT_Tree_MidGreenLeaves",
+    "MAT_Tree_SoftBarkRidges",
+    "MAT_Tree_WarmBrownBark"
+  ],
+  "animations": {
+    "clips": [
+      "Sway_Gentle"
+    ],
+    "default": "Sway_Gentle",
+    "embedded_in_glb": true
+  },
+  "rig": {
+    "type": "simple transform rig",
+    "root": "tree_model_root",
+    "animated_control": "ANIM_Tree_SwayRoot",
+    "stable_parts": [
+      "root flare",
+      "lower trunk",
+      "contact shadow"
+    ],
+    "animated_parts": [
+      "upper trunk",
+      "branches",
+      "canopy clusters",
+      "leaf highlights"
+    ]
+  },
+  "bounds": {
+    "min": [
+      -0.96,
+      -0.82,
+      -0.0069
+    ],
+    "max": [
+      0.98,
+      0.8,
+      3.08
+    ],
+    "size": [
+      1.94,
+      1.62,
+      3.0869
+    ],
+    "center": [
+      0.01,
+      -0.01,
+      1.5365
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912,
+    "material_warning": 16
+  },
+  "file_sizes": {
+    "blend_bytes": 345937,
+    "glb_bytes": 466168,
+    "preview_bytes": 1515357
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": true,
+    "source": "Blender MCP live bridge"
+  },
+  "notes": [
+    "Standard deciduous tree generated procedurally in Blender.",
+    "Tree sway is embedded as a non-Mixamo transform animation on ANIM_Tree_SwayRoot.",
+    "Mixamo exports are intentionally omitted because this is a non-humanoid botanical asset.",
+    "Chosen palette: warm brown bark, dark grooves, layered green leaves, light leaf highlights, and soft contact shadow."
+  ]
+}

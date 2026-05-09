@@ -269,6 +269,84 @@ export const assetRegistry = [
     },
   },
   {
+    id: "table",
+    name: "Table",
+    shortName: "Table",
+    description: "Compact standard rectangular table with a warm walnut frame and slate foot caps, generated procedurally in Blender.",
+    modelUrl: "/models/table.glb",
+    blendUrl: "/models/table.blend",
+    previewUrl: "/renders/table-preview.png",
+    metadataUrl: "/models/table.metadata.json",
+    downloadName: "table.glb",
+    blendDownloadName: "table.blend",
+    snapshotName: "table-snapshot.png",
+    sourceLabel: "Blender MCP",
+    defaultAnimation: "",
+    animationClips: [],
+    exports: [
+      {
+        id: "web-glb",
+        label: "Web GLB",
+        detail: "Static viewer file",
+        href: "/models/table.glb",
+        downloadName: "table.glb",
+      },
+      {
+        id: "blend",
+        label: "Blender source",
+        detail: "Static source scene",
+        href: "/models/table.blend",
+        downloadName: "table.blend",
+      },
+    ],
+    placement: {
+      mode: "floor-y",
+      offset: [0, 0, 0],
+    },
+    initialTransform: {
+      rotation: [0, -0.24, 0],
+      scale: 1,
+    },
+    camera: {
+      desktop: {
+        position: [1.9, 0.86, 2.85],
+        target: [0, 0.42, 0],
+      },
+      mobile: {
+        position: [1.0, 0.72, 3.35],
+        target: [0, 0.43, 0],
+      },
+      focus: {
+        position: [1.08, 0.68, 1.84],
+        target: [0, 0.5, 0],
+      },
+    },
+    authored: {
+      family: "Furniture",
+      target: "Static furniture showcase",
+      rig: "Unrigged static mesh",
+      effects: "Warm walnut tabletop and legs, darker endgrain bands, muted slate foot caps, close apron rails, and baked contact shadow",
+      sourceScene: "public/models/table.blend",
+      preview: "public/renders/table-preview.png",
+    },
+    metadataFallback: {
+      counts: {
+        mesh_objects: 19,
+        geometry_objects: 19,
+        triangles: 5748,
+        materials: 5,
+        bones: 0,
+        animations: 0,
+      },
+      bounds: {
+        size: [1.5, 0.9152, 0.7775],
+      },
+      file_sizes: {
+        glb_bytes: 146648,
+      },
+    },
+  },
+  {
     id: "flower",
     name: "Blender MCP Flower",
     shortName: "Flower",
@@ -340,6 +418,84 @@ export const assetRegistry = [
       },
       file_sizes: {
         glb_bytes: 1195308,
+      },
+    },
+  },
+  {
+    id: "tree",
+    name: "Tree",
+    shortName: "Tree",
+    description: "Standard deciduous tree with layered green canopy clusters, bark grooves, root flare, and a gentle sway animation.",
+    modelUrl: "/models/tree.glb",
+    blendUrl: "/models/tree.blend",
+    previewUrl: "/renders/tree-preview.png",
+    metadataUrl: "/models/tree.metadata.json",
+    downloadName: "tree.glb",
+    blendDownloadName: "tree.blend",
+    snapshotName: "tree-viewer-snapshot.png",
+    sourceLabel: "Blender MCP",
+    defaultAnimation: "Sway_Gentle",
+    animationClips: [{ name: "Sway_Gentle", label: "Sway" }],
+    exports: [
+      {
+        id: "web-glb",
+        label: "Web GLB",
+        detail: "Animated viewer file",
+        href: "/models/tree.glb",
+        downloadName: "tree.glb",
+      },
+      {
+        id: "blend",
+        label: "Blender source",
+        detail: "Animated source scene",
+        href: "/models/tree.blend",
+        downloadName: "tree.blend",
+      },
+    ],
+    placement: {
+      mode: "floor-y",
+      offset: [0, 0, 0],
+    },
+    initialTransform: {
+      rotation: [0, 0.28, 0],
+      scale: 0.92,
+    },
+    camera: {
+      desktop: {
+        position: [2.15, 1.58, 6.35],
+        target: [0, 1.55, 0],
+      },
+      mobile: {
+        position: [1.05, 1.42, 7.1],
+        target: [0, 1.55, 0],
+      },
+      focus: {
+        position: [1.15, 2.08, 4.05],
+        target: [0, 2.05, 0],
+      },
+    },
+    authored: {
+      family: "Botanical",
+      target: "Animated procedural tree showcase",
+      rig: "Simple transform sway rig",
+      effects: "Warm bark with dark grooves, layered natural green canopy clusters, root flare, and baked contact shadow",
+      sourceScene: "public/models/tree.blend",
+      preview: "public/renders/tree-preview.png",
+    },
+    metadataFallback: {
+      counts: {
+        mesh_objects: 37,
+        geometry_objects: 37,
+        triangles: 20388,
+        materials: 7,
+        bones: 0,
+        animations: 1,
+      },
+      bounds: {
+        size: [1.94, 1.62, 3.0869],
+      },
+      file_sizes: {
+        glb_bytes: 466168,
       },
     },
   },

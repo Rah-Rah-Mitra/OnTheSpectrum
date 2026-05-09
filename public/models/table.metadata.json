@@ -1,0 +1,98 @@
+{
+  "asset": "Table",
+  "slug": "table",
+  "generator": "create_table.py",
+  "spec": {
+    "slug": "table",
+    "asset_family": "Furniture",
+    "subject": "Standard rectangular table",
+    "visual_style": "Clean procedural studio furniture with softened edges and visible wood detail",
+    "required_parts": [
+      "Tabletop",
+      "apron rails",
+      "four legs",
+      "foot caps",
+      "contact shadow"
+    ],
+    "material_palette": [
+      "warm walnut tabletop and legs",
+      "darker endgrain bands",
+      "muted slate underside and foot caps",
+      "soft translucent contact shadow"
+    ],
+    "rig_target": "none",
+    "animation_clips": [],
+    "viewer_framing": "front-quarter view, slightly above tabletop, centered on full table footprint"
+  },
+  "paths": {
+    "blend": "public/models/table.blend",
+    "glb": "public/models/table.glb",
+    "preview": "public/renders/table-preview.png",
+    "metadata": "public/models/table.metadata.json"
+  },
+  "counts": {
+    "objects": 23,
+    "mesh_objects": 19,
+    "geometry_objects": 19,
+    "materials": 5,
+    "triangles": 5748,
+    "bones": 0,
+    "animations": 0
+  },
+  "materials": [
+    "MAT_Shadow_BakedSoftContact",
+    "MAT_Table_DarkEndgrain",
+    "MAT_Table_MutedSlateFeet",
+    "MAT_Table_SatinUnderside",
+    "MAT_Table_WarmWalnut"
+  ],
+  "animations": {
+    "clips": [],
+    "default": null,
+    "embedded_in_glb": false
+  },
+  "bounds": {
+    "min": [
+      -0.75,
+      -0.4576,
+      0.0
+    ],
+    "max": [
+      0.75,
+      0.4576,
+      0.7775
+    ],
+    "size": [
+      1.5,
+      0.9152,
+      0.7775
+    ],
+    "center": [
+      0.0,
+      0.0,
+      0.3887
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 100000,
+    "glb_size_warning_bytes": 12582912,
+    "material_warning": 16
+  },
+  "file_sizes": {
+    "blend_bytes": 148210,
+    "glb_bytes": 146648,
+    "preview_bytes": 1669485
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": false,
+    "source": "Blender MCP live bridge"
+  },
+  "notes": [
+    "Standard rectangular table generated procedurally in Blender.",
+    "Intentionally static furniture asset: no rig, no embedded animation clips, and no Mixamo exports.",
+    "Chosen palette: warm walnut frame, darker endgrain bands, muted slate foot caps, and baked contact shadow."
+  ]
+}

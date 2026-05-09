@@ -307,6 +307,20 @@ async function main() {
     ])),
     inspectorText: document.querySelector('.inspector')?.innerText || '',
   })`);
+  await evaluate(`document.querySelector('[aria-label="Select Tree"]')?.click();`);
+  const treeReady = await waitForAsset("Tree", "20,388");
+  await delay(300);
+  const treeCanvasDataLength = await canvasDataLength();
+  const treeState = await evaluate(`({
+    selected: Boolean(document.querySelector('[aria-label="Select Tree"][aria-pressed="true"]')),
+    swayActive: Boolean(document.querySelector('[aria-label="Select Sway animation"][aria-pressed="true"]')),
+    statusText: document.querySelector('.status-strip')?.innerText || '',
+    exports: Object.fromEntries([...document.querySelectorAll('.export-menu-list a')].map((link) => [
+      link.getAttribute('aria-label'),
+      { href: link.getAttribute('href'), download: link.getAttribute('download') },
+    ])),
+    inspectorText: document.querySelector('.inspector')?.innerText || '',
+  })`);
 
   await cdp.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   await cdp.send("Page.navigate", { url });
@@ -321,12 +335,17 @@ async function main() {
   await evaluate(`document.querySelector('[aria-label="Select Chair"]')?.click();`);
   const mobileChairReady = await waitForAsset("Chair", "12,956");
   const mobileChairCanvasDataLength = await canvasDataLength();
+  const mobileChairSelected = await evaluate(`Boolean(document.querySelector('[aria-label="Select Chair"][aria-pressed="true"]'))`);
+  await evaluate(`document.querySelector('[aria-label="Select Tree"]')?.click();`);
+  const mobileTreeReady = await waitForAsset("Tree", "20,388");
+  const mobileTreeCanvasDataLength = await canvasDataLength();
   const mobileState = await evaluate(`({
     horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
     bodyText: document.body.innerText.slice(0, 500),
     viewport: { width: window.innerWidth, height: window.innerHeight },
     selectedFlower: ${mobileFlowerSelected},
-    selectedChair: Boolean(document.querySelector('[aria-label="Select Chair"][aria-pressed="true"]')),
+    selectedChair: ${mobileChairSelected},
+    selectedTree: Boolean(document.querySelector('[aria-label="Select Tree"][aria-pressed="true"]')),
   })`);
   const mobileShot = await cdp.send("Page.captureScreenshot", { format: "png", fromSurface: true });
   const mobilePath = path.join(qaDir, "artomata-assets-mobile.png");

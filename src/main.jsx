@@ -1,18 +1,44 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
+  Box,
+  BrickWall,
   Camera,
   ChevronDown,
+  CheckCircle2,
+  ClipboardCheck,
+  Copy,
   Crosshair,
+  DoorOpen,
   Download,
+  Eraser,
   Film,
+  Grid2X2,
+  Home,
+  LayoutGrid,
+  Lightbulb,
+  Map as MapIcon,
   Maximize,
+  MousePointer2,
+  Package,
   Paintbrush,
   Palette,
   Pause,
   Play,
+  RefreshCw,
   RotateCcw,
+  RotateCw,
+  Save,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  StickyNote,
   SunMedium,
+  Tags,
+  TextCursorInput,
+  Trash2,
+  Upload,
+  WandSparkles,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -51,6 +77,319 @@ const sceneModes = {
     accent: "#e4cf9b",
   },
 };
+
+const pageTabs = [
+  { id: "viewer", label: "Asset Viewer", Icon: Home },
+  { id: "world", label: "World Creator", Icon: LayoutGrid },
+];
+
+const brushModes = {
+  place: { label: "Place", Icon: MousePointer2 },
+  erase: { label: "Erase", Icon: Eraser },
+  inspect: { label: "Inspect", Icon: SlidersHorizontal },
+};
+
+const worldThemes = [
+  { id: "studio-atrium", label: "Studio Atrium", mood: "polished indoor set with practical lighting and display zones" },
+  { id: "toon-lab", label: "Toon Lab", mood: "bright experimental room for animated characters and prop testing" },
+  { id: "garden-room", label: "Garden Room", mood: "soft botanical interior with paths, blooms, and quiet staging pockets" },
+  { id: "training-floor", label: "Training Floor", mood: "clear traversal lanes for action character blocking and animation tests" },
+];
+
+const structurePalette = [
+  {
+    id: "floor",
+    label: "Floor",
+    family: "Structure",
+    className: "floor",
+    color: "#2e4241",
+    Icon: Grid2X2,
+    agentHint: "walkable tile",
+  },
+  {
+    id: "wall",
+    label: "Wall",
+    family: "Structure",
+    className: "wall",
+    color: "#e4cf9b",
+    Icon: BrickWall,
+    agentHint: "blocking boundary wall",
+  },
+  {
+    id: "door",
+    label: "Door",
+    family: "Structure",
+    className: "door",
+    color: "#f47d69",
+    Icon: DoorOpen,
+    agentHint: "entry or transition point",
+  },
+  {
+    id: "light",
+    label: "Light",
+    family: "Utility",
+    className: "light",
+    color: "#28e0ea",
+    Icon: Lightbulb,
+    agentHint: "motivated scene light",
+  },
+  {
+    id: "spawn",
+    label: "Spawn",
+    family: "Utility",
+    className: "spawn",
+    color: "#91f0a8",
+    Icon: Sparkles,
+    agentHint: "default character start point",
+  },
+];
+
+const defaultWorldMeta = {
+  name: "Painter Atelier Grid",
+  theme: "studio-atrium",
+  columns: 10,
+  rows: 8,
+  cellSize: "1m",
+  rules: "Keep at least one door or spawn, keep characters reachable, and use walls only where they clarify room boundaries.",
+};
+
+function getCellKey(x, y) {
+  return `${x}:${y}`;
+}
+
+function clampGridValue(value, min, max) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return min;
+  return Math.min(max, Math.max(min, Math.round(parsed)));
+}
+
+function findStructure(id) {
+  return structurePalette.find((item) => item.id === id) ?? structurePalette[0];
+}
+
+function findAsset(id) {
+  return assetRegistry.find((item) => item.id === id) ?? assetRegistry[0];
+}
+
+function createStructureCell(item, x, y, overrides = {}) {
+  return {
+    id: `${item.id}-${x}-${y}`,
+    type: "structure",
+    itemId: item.id,
+    label: item.label,
+    family: item.family,
+    x,
+    y,
+    rotation: overrides.rotation ?? 0,
+    scale: overrides.scale ?? 1,
+    elevation: overrides.elevation ?? 0,
+    color: item.color,
+    className: item.className,
+    agentHint: item.agentHint,
+    tags: overrides.tags ?? [item.family.toLowerCase()],
+    notes: overrides.notes ?? "",
+  };
+}
+
+function createAssetCell(asset, x, y, overrides = {}) {
+  return {
+    id: `${asset.id}-${x}-${y}`,
+    type: "asset",
+    itemId: asset.id,
+    label: asset.shortName,
+    family: asset.authored.family,
+    x,
+    y,
+    rotation: overrides.rotation ?? 0,
+    scale: overrides.scale ?? 1,
+    elevation: overrides.elevation ?? 0,
+    previewUrl: asset.previewUrl,
+    modelUrl: asset.modelUrl,
+    blendUrl: asset.blendUrl,
+    agentHint: asset.description,
+    tags: overrides.tags ?? [asset.authored.family.toLowerCase()],
+    notes: overrides.notes ?? "",
+  };
+}
+
+function createPaletteCell(paletteItem, x, y, previousCell) {
+  const overrides = previousCell
+    ? {
+        rotation: previousCell.rotation,
+        scale: previousCell.scale,
+        elevation: previousCell.elevation,
+        tags: previousCell.tags,
+        notes: previousCell.notes,
+      }
+    : {};
+  if (paletteItem.type === "asset") {
+    return createAssetCell(findAsset(paletteItem.id), x, y, overrides);
+  }
+  return createStructureCell(findStructure(paletteItem.id), x, y, overrides);
+}
+
+function createStarterWorldCells(columns = defaultWorldMeta.columns, rows = defaultWorldMeta.rows) {
+  const cells = {};
+  const wall = findStructure("wall");
+  for (let y = 0; y < rows; y += 1) {
+    for (let x = 0; x < columns; x += 1) {
+      if (x === 0 || y === 0 || x === columns - 1 || y === rows - 1) {
+        cells[getCellKey(x, y)] = createStructureCell(wall, x, y, { tags: ["boundary", "wall"] });
+      }
+    }
+  }
+
+  const door = findStructure("door");
+  const spawn = findStructure("spawn");
+  const light = findStructure("light");
+  cells[getCellKey(Math.floor(columns / 2), rows - 1)] = createStructureCell(door, Math.floor(columns / 2), rows - 1, {
+    tags: ["entry", "south"],
+    notes: "Primary entrance for generated scene traversal.",
+  });
+  cells[getCellKey(1, 1)] = createStructureCell(spawn, 1, 1, {
+    tags: ["start", "agent"],
+    notes: "Default spawn point for character placement.",
+  });
+  cells[getCellKey(columns - 2, 1)] = createStructureCell(light, columns - 2, 1, {
+    tags: ["lighting", "key"],
+    notes: "Key light anchor for the first generated room.",
+  });
+
+  const character = assetRegistry.find((asset) => asset.authored.family === "Character") ?? assetRegistry[0];
+  const table = assetRegistry.find((asset) => asset.id === "table");
+  const chair = assetRegistry.find((asset) => asset.id === "chair");
+  const flower = assetRegistry.find((asset) => asset.id === "flower");
+  cells[getCellKey(3, 3)] = createAssetCell(character, 3, 3, { tags: ["hero", "character"] });
+  if (table) cells[getCellKey(5, 4)] = createAssetCell(table, 5, 4, { rotation: 90, tags: ["furniture", "anchor"] });
+  if (chair) cells[getCellKey(5, 5)] = createAssetCell(chair, 5, 5, { rotation: 180, tags: ["furniture", "seat"] });
+  if (flower) cells[getCellKey(columns - 3, rows - 3)] = createAssetCell(flower, columns - 3, rows - 3, {
+    scale: 0.85,
+    tags: ["botanical", "accent"],
+  });
+
+  return cells;
+}
+
+function resizeWorldCells(cells, columns, rows) {
+  const next = {};
+  Object.values(cells).forEach((cell) => {
+    if (cell.x < columns && cell.y < rows) {
+      next[getCellKey(cell.x, cell.y)] = cell;
+    }
+  });
+
+  const wall = findStructure("wall");
+  for (let y = 0; y < rows; y += 1) {
+    for (let x = 0; x < columns; x += 1) {
+      const key = getCellKey(x, y);
+      if ((x === 0 || y === 0 || x === columns - 1 || y === rows - 1) && !next[key]) {
+        next[key] = createStructureCell(wall, x, y, { tags: ["boundary", "wall"] });
+      }
+    }
+  }
+  return next;
+}
+
+function normaliseImportedCell(placement) {
+  const x = Number(placement.x);
+  const y = Number(placement.y);
+  const overrides = {
+    rotation: Number(placement.rotation) || 0,
+    scale: Number(placement.scale) || 1,
+    elevation: Number(placement.elevation) || 0,
+    tags: Array.isArray(placement.tags) ? placement.tags : [],
+    notes: typeof placement.notes === "string" ? placement.notes : "",
+  };
+  if (placement.type === "asset") {
+    return createAssetCell(findAsset(placement.itemId ?? placement.assetId), x, y, overrides);
+  }
+  return createStructureCell(findStructure(placement.itemId ?? placement.structureId), x, y, overrides);
+}
+
+function serializeWorld(meta, cells) {
+  const theme = worldThemes.find((item) => item.id === meta.theme) ?? worldThemes[0];
+  return {
+    schemaVersion: "artomata.world-grid.v1",
+    name: meta.name,
+    theme: meta.theme,
+    mood: theme.mood,
+    grid: {
+      columns: meta.columns,
+      rows: meta.rows,
+      cellSize: meta.cellSize,
+      coordinateSystem: "zero-based x,y from top-left",
+    },
+    rules: meta.rules,
+    palette: {
+      assets: assetRegistry.map((asset) => ({
+        id: asset.id,
+        label: asset.shortName,
+        family: asset.authored.family,
+        modelUrl: asset.modelUrl,
+      })),
+      structures: structurePalette.map((item) => ({
+        id: item.id,
+        label: item.label,
+        family: item.family,
+        agentHint: item.agentHint,
+      })),
+    },
+    placements: Object.values(cells)
+      .sort((a, b) => a.y - b.y || a.x - b.x)
+      .map(({ type, itemId, label, family, x, y, rotation, scale, elevation, tags, notes, agentHint }) => ({
+        type,
+        itemId,
+        label,
+        family,
+        x,
+        y,
+        rotation,
+        scale,
+        elevation,
+        tags,
+        notes,
+        agentHint,
+      })),
+    agentContract: {
+      oneOccupantPerCell: true,
+      validPlacementTypes: ["asset", "structure"],
+      preferredWorkflow: "Edit placements, keep x/y inside grid bounds, then import JSON through the World Creator panel.",
+    },
+  };
+}
+
+function buildAgentBrief(world) {
+  const characterCount = world.placements.filter((item) => item.family === "Character").length;
+  const structureCount = world.placements.filter((item) => item.type === "structure").length;
+  return [
+    `World: ${world.name}`,
+    `Theme: ${world.theme} (${world.mood})`,
+    `Grid: ${world.grid.columns} x ${world.grid.rows}, ${world.grid.cellSize} cells, coordinates are ${world.grid.coordinateSystem}.`,
+    `Current contents: ${world.placements.length} placements, ${characterCount} character placement(s), ${structureCount} structure placement(s).`,
+    `Rules: ${world.rules}`,
+    "Agent task contract: use itemId values from the palette, place at integer x/y coordinates inside the grid, use rotation in 90-degree increments when possible, add tags and notes for generation intent, and keep one occupant per cell.",
+  ].join("\n");
+}
+
+function validateWorld(world) {
+  const placements = world.placements;
+  const hasCharacter = placements.some((item) => item.family === "Character");
+  const hasEntry = placements.some((item) => item.itemId === "door" || item.itemId === "spawn");
+  const hasStructure = placements.some((item) => item.type === "structure");
+  const occupiedKeys = new Set();
+  let duplicate = false;
+  placements.forEach((item) => {
+    const key = getCellKey(item.x, item.y);
+    if (occupiedKeys.has(key)) duplicate = true;
+    occupiedKeys.add(key);
+  });
+  return [
+    { ok: hasCharacter, label: "Character anchor", detail: hasCharacter ? "Ready" : "Place at least one character asset." },
+    { ok: hasEntry, label: "Entry point", detail: hasEntry ? "Ready" : "Add a door or spawn tile." },
+    { ok: hasStructure, label: "Room structure", detail: hasStructure ? "Ready" : "Add walls, floors, lights, or spawn markers." },
+    { ok: !duplicate, label: "Cell uniqueness", detail: duplicate ? "Resolve duplicate coordinates." : "Ready" },
+  ];
+}
 
 function createGradientTexture(top, bottom) {
   const canvas = document.createElement("canvas");
@@ -479,7 +818,35 @@ function AssetPicker({ assets, selectedId, onSelect }) {
   );
 }
 
-function App() {
+function Brand() {
+  return (
+    <div className="brand">
+      <Paintbrush aria-hidden="true" />
+      <span>Artomata Asset Viewer</span>
+    </div>
+  );
+}
+
+function PageNav({ activePage, onNavigate }) {
+  return (
+    <nav className="page-nav" aria-label="App pages">
+      {pageTabs.map(({ id, label, Icon }) => (
+        <button
+          key={id}
+          type="button"
+          className={activePage === id ? "active" : ""}
+          aria-current={activePage === id ? "page" : undefined}
+          onClick={() => onNavigate(id)}
+        >
+          <Icon aria-hidden="true" />
+          <span>{label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function AssetViewerPage({ activePage, onNavigate }) {
   const [selectedAssetId, setSelectedAssetId] = useState(defaultAssetId);
   const [autoSpin, setAutoSpin] = useState(false);
   const [activeClipName, setActiveClipName] = useState("");
@@ -561,13 +928,10 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
-      <div className="ambient-lines" aria-hidden="true" />
-      <header className="topbar">
-        <div className="brand">
-          <Paintbrush aria-hidden="true" />
-          <span>Artomata Asset Viewer</span>
-        </div>
+    <>
+      <header className="topbar viewer-topbar">
+        <Brand />
+        <PageNav activePage={activePage} onNavigate={onNavigate} />
         <nav className="view-tabs" aria-label="Lighting mode">
           {Object.entries(sceneModes).map(([key, item]) => (
             <button key={key} type="button" className={mode === key ? "active" : ""} onClick={() => setMode(key)}>
@@ -676,6 +1040,575 @@ function App() {
           </div>
         </dl>
       </aside>
+    </>
+  );
+}
+
+function WorldPaletteButton({ item, active, onSelect }) {
+  const Icon = item.Icon ?? Package;
+  return (
+    <button
+      type="button"
+      className={`palette-tile${active ? " active" : ""}${item.type === "asset" ? " asset-palette-tile" : ""}`}
+      aria-pressed={active}
+      onClick={() => onSelect(item.id)}
+    >
+      {item.previewUrl ? <img src={item.previewUrl} alt="" loading="lazy" /> : <Icon aria-hidden="true" />}
+      <span>
+        <strong>{item.label}</strong>
+        <small>{item.family}</small>
+      </span>
+    </button>
+  );
+}
+
+function WorldCell({ cell, x, y, selected, onClick }) {
+  const structure = cell?.type === "structure" ? findStructure(cell.itemId) : null;
+  const Icon = structure?.Icon ?? Package;
+  const className = [
+    "world-cell",
+    cell ? "occupied" : "",
+    cell?.type ?? "",
+    cell?.className ?? "",
+    selected ? "selected" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <button
+      type="button"
+      className={className}
+      style={{
+        "--cell-accent": cell?.color ?? "#28e0ea",
+        "--cell-rotation": `${cell?.rotation ?? 0}deg`,
+        "--cell-scale": cell?.scale ?? 1,
+      }}
+      aria-label={cell ? `${cell.label} at ${x}, ${y}` : `Empty cell ${x}, ${y}`}
+      aria-pressed={selected}
+      onClick={onClick}
+    >
+      <span className="cell-coordinates">
+        {x + 1}.{y + 1}
+      </span>
+      {cell ? (
+        <span className="cell-content">
+          {cell.previewUrl ? <img src={cell.previewUrl} alt="" loading="lazy" /> : <Icon aria-hidden="true" />}
+        </span>
+      ) : null}
+      {cell ? <strong>{cell.label}</strong> : null}
+    </button>
+  );
+}
+
+function WorldCreatorPage({ activePage, onNavigate }) {
+  const [worldMeta, setWorldMeta] = useState(defaultWorldMeta);
+  const [cells, setCells] = useState(() => createStarterWorldCells());
+  const [selectedPaletteId, setSelectedPaletteId] = useState(defaultAssetId);
+  const [brushMode, setBrushMode] = useState("place");
+  const [selectedKey, setSelectedKey] = useState(getCellKey(3, 3));
+  const [importText, setImportText] = useState("");
+  const [copyStatus, setCopyStatus] = useState("");
+  const [schemaView, setSchemaView] = useState("json");
+
+  const paletteItems = useMemo(
+    () => [
+      ...structurePalette.map((item) => ({ ...item, type: "structure" })),
+      ...assetRegistry.map((asset) => ({
+        id: asset.id,
+        type: "asset",
+        label: asset.shortName,
+        family: asset.authored.family,
+        previewUrl: asset.previewUrl,
+        agentHint: asset.description,
+      })),
+    ],
+    [],
+  );
+  const selectedPalette = paletteItems.find((item) => item.id === selectedPaletteId) ?? paletteItems[0];
+  const worldDocument = useMemo(() => serializeWorld(worldMeta, cells), [cells, worldMeta]);
+  const worldJson = useMemo(() => JSON.stringify(worldDocument, null, 2), [worldDocument]);
+  const agentBrief = useMemo(() => buildAgentBrief(worldDocument), [worldDocument]);
+  const validation = useMemo(() => validateWorld(worldDocument), [worldDocument]);
+  const selectedCell = selectedKey ? cells[selectedKey] : null;
+
+  const gridCells = useMemo(
+    () =>
+      Array.from({ length: worldMeta.columns * worldMeta.rows }, (_, index) => {
+        const x = index % worldMeta.columns;
+        const y = Math.floor(index / worldMeta.columns);
+        return { x, y, key: getCellKey(x, y), cell: cells[getCellKey(x, y)] };
+      }),
+    [cells, worldMeta.columns, worldMeta.rows],
+  );
+
+  function navigate(page) {
+    onNavigate(page);
+  }
+
+  function updateWorldField(field, value) {
+    setWorldMeta((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateGridDimension(field, value) {
+    const nextValue = clampGridValue(value, field === "columns" ? 6 : 5, field === "columns" ? 16 : 12);
+    const nextMeta = { ...worldMeta, [field]: nextValue };
+    setWorldMeta(nextMeta);
+    setCells((current) => resizeWorldCells(current, nextMeta.columns, nextMeta.rows));
+    setSelectedKey((currentKey) => {
+      const currentCell = currentKey ? cells[currentKey] : null;
+      if (!currentCell || currentCell.x >= nextMeta.columns || currentCell.y >= nextMeta.rows) return null;
+      return currentKey;
+    });
+  }
+
+  function handleCellAction(x, y) {
+    const key = getCellKey(x, y);
+    setSelectedKey(key);
+    if (brushMode === "inspect") return;
+    if (brushMode === "erase") {
+      setCells((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+      return;
+    }
+    setCells((current) => ({
+      ...current,
+      [key]: createPaletteCell(selectedPalette, x, y, current[key]),
+    }));
+  }
+
+  function updateSelectedCell(patch) {
+    if (!selectedKey || !cells[selectedKey]) return;
+    setCells((current) => ({
+      ...current,
+      [selectedKey]: { ...current[selectedKey], ...patch },
+    }));
+  }
+
+  function clearWorld() {
+    setCells({});
+    setSelectedKey(null);
+  }
+
+  function resetStarterWorld() {
+    setCells(createStarterWorldCells(worldMeta.columns, worldMeta.rows));
+    setSelectedKey(getCellKey(3, 3));
+  }
+
+  async function copyText(text, label) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopyStatus(`${label} copied`);
+    } catch {
+      setCopyStatus(`Unable to copy ${label.toLowerCase()}`);
+    }
+    window.setTimeout(() => setCopyStatus(""), 2200);
+  }
+
+  function downloadWorldJson() {
+    const slug = worldMeta.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "world";
+    const blob = new Blob([worldJson], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${slug}.world.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setCopyStatus("World JSON saved");
+    window.setTimeout(() => setCopyStatus(""), 2200);
+  }
+
+  function applyImportedWorld() {
+    try {
+      const parsed = JSON.parse(importText);
+      const columns = clampGridValue(parsed.grid?.columns ?? parsed.columns ?? worldMeta.columns, 6, 16);
+      const rows = clampGridValue(parsed.grid?.rows ?? parsed.rows ?? worldMeta.rows, 5, 12);
+      const placements = Array.isArray(parsed.placements) ? parsed.placements : [];
+      const nextCells = {};
+      placements.forEach((placement) => {
+        const x = Number(placement.x);
+        const y = Number(placement.y);
+        if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= columns || y >= rows) return;
+        nextCells[getCellKey(x, y)] = normaliseImportedCell(placement);
+      });
+      setWorldMeta({
+        name: parsed.name || worldMeta.name,
+        theme: parsed.theme || worldMeta.theme,
+        columns,
+        rows,
+        cellSize: parsed.grid?.cellSize || worldMeta.cellSize,
+        rules: parsed.rules || worldMeta.rules,
+      });
+      setCells(placements.length ? nextCells : createStarterWorldCells(columns, rows));
+      setSelectedKey(Object.keys(nextCells)[0] ?? null);
+      setCopyStatus("World JSON imported");
+    } catch {
+      setCopyStatus("Import JSON has a syntax issue");
+    }
+    window.setTimeout(() => setCopyStatus(""), 2600);
+  }
+
+  return (
+    <>
+      <header className="topbar creator-topbar">
+        <Brand />
+        <PageNav activePage={activePage} onNavigate={navigate} />
+        <nav className="view-tabs creator-mode-tabs" aria-label="World brush mode">
+          {Object.entries(brushModes).map(([key, item]) => {
+            const Icon = item.Icon;
+            return (
+              <button key={key} type="button" className={brushMode === key ? "active" : ""} onClick={() => setBrushMode(key)}>
+                <Icon aria-hidden="true" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+        <div className="toolbar">
+          <IconButton label="Reset starter world" onClick={resetStarterWorld}>
+            <RefreshCw />
+          </IconButton>
+          <IconButton label="Copy world JSON" onClick={() => copyText(worldJson, "World JSON")}>
+            <Copy />
+          </IconButton>
+          <IconButton label="Download world JSON" onClick={downloadWorldJson}>
+            <Save />
+          </IconButton>
+          <IconButton label="Clear world" onClick={clearWorld}>
+            <Trash2 />
+          </IconButton>
+        </div>
+      </header>
+
+      <section className="world-creator" aria-label="World Creator">
+        <aside className="creator-panel palette-panel" aria-label="World palette">
+          <div className="panel-heading">
+            <div>
+              <span>Palette</span>
+              <small>{selectedPalette.label}</small>
+            </div>
+            <Box aria-hidden="true" />
+          </div>
+          <div className="palette-section">
+            <h2>Build Pieces</h2>
+            <div className="palette-grid">
+              {paletteItems
+                .filter((item) => item.type === "structure")
+                .map((item) => (
+                  <WorldPaletteButton
+                    key={item.id}
+                    item={item}
+                    active={selectedPaletteId === item.id}
+                    onSelect={setSelectedPaletteId}
+                  />
+                ))}
+            </div>
+          </div>
+          <div className="palette-section">
+            <h2>Assets</h2>
+            <div className="palette-grid">
+              {paletteItems
+                .filter((item) => item.type === "asset")
+                .map((item) => (
+                  <WorldPaletteButton
+                    key={item.id}
+                    item={item}
+                    active={selectedPaletteId === item.id}
+                    onSelect={setSelectedPaletteId}
+                  />
+                ))}
+            </div>
+          </div>
+        </aside>
+
+        <section className="world-stage-panel" aria-label="Placement grid">
+          <div className="world-stage-heading">
+            <div>
+              <h1>World Creator</h1>
+              <span>{worldMeta.name}</span>
+            </div>
+            <div className="world-stats" aria-label="World stats">
+              <span>
+                <Grid2X2 aria-hidden="true" />
+                {worldMeta.columns} x {worldMeta.rows}
+              </span>
+              <span>
+                <Package aria-hidden="true" />
+                {worldDocument.placements.length}
+              </span>
+              <span>
+                <ShieldCheck aria-hidden="true" />
+                {validation.filter((item) => item.ok).length}/{validation.length}
+              </span>
+            </div>
+          </div>
+
+          <div className="world-grid-frame">
+            <div
+              className="world-grid"
+              style={{
+                "--world-columns": worldMeta.columns,
+                "--world-rows": worldMeta.rows,
+              }}
+            >
+              {gridCells.map(({ key, x, y, cell }) => (
+                <WorldCell
+                  key={key}
+                  x={x}
+                  y={y}
+                  cell={cell}
+                  selected={selectedKey === key}
+                  onClick={() => handleCellAction(x, y)}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="creator-status-strip">
+            <span>{brushModes[brushMode].label} brush</span>
+            <span>{selectedPalette.label}</span>
+            <span>{copyStatus || "Autosynced schema"}</span>
+          </div>
+        </section>
+
+        <aside className="creator-panel world-inspector" aria-label="World inspector">
+          <div className="panel-heading">
+            <div>
+              <span>World Setup</span>
+              <small>{worldThemes.find((item) => item.id === worldMeta.theme)?.label}</small>
+            </div>
+            <MapIcon aria-hidden="true" />
+          </div>
+
+          <div className="form-grid">
+            <label>
+              <span>Name</span>
+              <input value={worldMeta.name} onChange={(event) => updateWorldField("name", event.target.value)} />
+            </label>
+            <label>
+              <span>Theme</span>
+              <select value={worldMeta.theme} onChange={(event) => updateWorldField("theme", event.target.value)}>
+                {worldThemes.map((theme) => (
+                  <option key={theme.id} value={theme.id}>
+                    {theme.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Columns</span>
+              <input
+                type="number"
+                min="6"
+                max="16"
+                value={worldMeta.columns}
+                onChange={(event) => updateGridDimension("columns", event.target.value)}
+              />
+            </label>
+            <label>
+              <span>Rows</span>
+              <input
+                type="number"
+                min="5"
+                max="12"
+                value={worldMeta.rows}
+                onChange={(event) => updateGridDimension("rows", event.target.value)}
+              />
+            </label>
+            <label>
+              <span>Cell Size</span>
+              <input value={worldMeta.cellSize} onChange={(event) => updateWorldField("cellSize", event.target.value)} />
+            </label>
+          </div>
+
+          <label className="full-field">
+            <span>
+              <TextCursorInput aria-hidden="true" />
+              Rules
+            </span>
+            <textarea value={worldMeta.rules} onChange={(event) => updateWorldField("rules", event.target.value)} rows="3" />
+          </label>
+
+          <div className="panel-heading compact-heading">
+            <div>
+              <span>{selectedCell ? selectedCell.label : "No cell selected"}</span>
+              <small>{selectedCell ? `${selectedCell.x + 1}.${selectedCell.y + 1}` : "Select a grid cell"}</small>
+            </div>
+            <ClipboardCheck aria-hidden="true" />
+          </div>
+
+          <div className="selected-cell-tools">
+            <div className="segmented-icon-row" aria-label="Cell rotation controls">
+              <button type="button" disabled={!selectedCell} onClick={() => updateSelectedCell({ rotation: (selectedCell.rotation + 270) % 360 })}>
+                <RotateCcw aria-hidden="true" />
+                <span>-90</span>
+              </button>
+              <button type="button" disabled={!selectedCell} onClick={() => updateSelectedCell({ rotation: (selectedCell.rotation + 90) % 360 })}>
+                <RotateCw aria-hidden="true" />
+                <span>+90</span>
+              </button>
+            </div>
+            <label>
+              <span>Scale</span>
+              <input
+                type="range"
+                min="0.5"
+                max="1.75"
+                step="0.05"
+                disabled={!selectedCell}
+                value={selectedCell?.scale ?? 1}
+                onChange={(event) => updateSelectedCell({ scale: Number(event.target.value) })}
+              />
+            </label>
+            <label>
+              <span>Elevation</span>
+              <input
+                type="number"
+                step="0.25"
+                disabled={!selectedCell}
+                value={selectedCell?.elevation ?? 0}
+                onChange={(event) => updateSelectedCell({ elevation: Number(event.target.value) || 0 })}
+              />
+            </label>
+            <label>
+              <span>
+                <Tags aria-hidden="true" />
+                Tags
+              </span>
+              <input
+                disabled={!selectedCell}
+                value={selectedCell?.tags?.join(", ") ?? ""}
+                onChange={(event) =>
+                  updateSelectedCell({
+                    tags: event.target.value
+                      .split(",")
+                      .map((tag) => tag.trim())
+                      .filter(Boolean),
+                  })
+                }
+              />
+            </label>
+            <label>
+              <span>
+                <StickyNote aria-hidden="true" />
+                Notes
+              </span>
+              <textarea
+                disabled={!selectedCell}
+                rows="3"
+                value={selectedCell?.notes ?? ""}
+                onChange={(event) => updateSelectedCell({ notes: event.target.value })}
+              />
+            </label>
+          </div>
+        </aside>
+
+        <aside className="creator-panel agent-panel" aria-label="Agent handoff">
+          <div className="panel-heading">
+            <div>
+              <span>Agent Handoff</span>
+              <small>{schemaView === "json" ? "World JSON" : "Generation brief"}</small>
+            </div>
+            <WandSparkles aria-hidden="true" />
+          </div>
+
+          <div className="schema-tabs" aria-label="Schema view">
+            <button type="button" className={schemaView === "json" ? "active" : ""} onClick={() => setSchemaView("json")}>
+              JSON
+            </button>
+            <button type="button" className={schemaView === "brief" ? "active" : ""} onClick={() => setSchemaView("brief")}>
+              Brief
+            </button>
+          </div>
+
+          <textarea className="schema-output" readOnly value={schemaView === "json" ? worldJson : agentBrief} />
+
+          <div className="agent-actions">
+            <button type="button" onClick={() => copyText(worldJson, "World JSON")}>
+              <Copy aria-hidden="true" />
+              <span>Copy JSON</span>
+            </button>
+            <button type="button" onClick={() => copyText(agentBrief, "Agent brief")}>
+              <ClipboardCheck aria-hidden="true" />
+              <span>Copy Brief</span>
+            </button>
+          </div>
+
+          <div className="validation-list">
+            {validation.map((item) => (
+              <div key={item.label} className={item.ok ? "ready" : "needs-work"}>
+                <CheckCircle2 aria-hidden="true" />
+                <span>
+                  <strong>{item.label}</strong>
+                  <small>{item.detail}</small>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <label className="full-field import-field">
+            <span>
+              <Upload aria-hidden="true" />
+              Import JSON
+            </span>
+            <textarea value={importText} rows="5" onChange={(event) => setImportText(event.target.value)} />
+          </label>
+          <button type="button" className="wide-action" onClick={applyImportedWorld}>
+            <Upload aria-hidden="true" />
+            <span>Apply Import</span>
+          </button>
+        </aside>
+      </section>
+    </>
+  );
+}
+
+function getInitialPage() {
+  if (window.location.hash.replace("#", "") === "world") return "world";
+  return "viewer";
+}
+
+function App() {
+  const [activePage, setActivePage] = useState(getInitialPage);
+
+  useEffect(() => {
+    function handleHashChange() {
+      setActivePage(getInitialPage());
+    }
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  function navigate(page) {
+    setActivePage(page);
+    const nextHash = page === "world" ? "#world" : "#viewer";
+    if (window.location.hash !== nextHash) {
+      window.location.hash = nextHash;
+    }
+  }
+
+  return (
+    <main className={`app-shell ${activePage === "world" ? "world-shell" : "viewer-shell"}`}>
+      <div className="ambient-lines" aria-hidden="true" />
+      {activePage === "world" ? (
+        <WorldCreatorPage activePage={activePage} onNavigate={navigate} />
+      ) : (
+        <AssetViewerPage activePage={activePage} onNavigate={navigate} />
+      )}
     </main>
   );
 }
