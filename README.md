@@ -6,7 +6,10 @@ OnTheSpectrum is a local-first game asset and world prototyping pipeline for tea
 
 The current app surface is branded **OnTheSpectrum Asset Viewer**. OnTheSpectrum is the full product workflow around it: asset generation, asset inspection, world creation, 3D preview, and demo capture.
 
-![OnTheSpectrum asset viewer showing a rig-ready Painter Chibi model](docs/assets/readme/viewer.png)
+<video controls width="100%" preload="metadata">
+  <source src="video-demo/OnTheSpectrum.mp4" type="video/mp4" />
+  Your browser does not support the video tag.
+</video>
 
 ## Why Game Teams Use It
 
