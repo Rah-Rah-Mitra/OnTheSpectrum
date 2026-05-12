@@ -6,9 +6,9 @@ OnTheSpectrum is a local-first game asset and world prototyping pipeline for tea
 
 The current app surface is branded **OnTheSpectrum Asset Viewer**. OnTheSpectrum is the full product workflow around it: asset generation, asset inspection, world creation, 3D preview, and demo capture.
 
-[OnTheSpectrum demo (14MB MP4)](https://raw.githubusercontent.com/Rah-Rah-Mitra/OnTheSpectrum/main/video-demo/OnTheSpectrum.mp4)
-
-[![Play the OnTheSpectrum demo](docs/assets/readme/viewer.png)](https://raw.githubusercontent.com/Rah-Rah-Mitra/OnTheSpectrum/main/video-demo/OnTheSpectrum.mp4)
+<video src="https://github.com/user-attachments/assets/7decddfc-7355-4714-8b1f-1c2d8b7ea6d2" controls muted playsinline width="720">
+  Your browser does not render the embedded video. <a href="https://github.com/user-attachments/assets/7decddfc-7355-4714-8b1f-1c2d8b7ea6d2">Watch the OnTheSpectrum demo</a>.
+</video>
 
 ## Why Game Teams Use It
 
