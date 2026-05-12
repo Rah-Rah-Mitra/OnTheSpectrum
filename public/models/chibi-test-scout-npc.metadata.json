@@ -1,0 +1,265 @@
+{
+  "asset": "Chibi Test Scout NPC",
+  "slug": "chibi-test-scout-npc",
+  "generator": "create_chibi_test_scout_npc.py",
+  "spec": {
+    "slug": "chibi-test-scout-npc",
+    "assetFamily": "character",
+    "pipelineId": "character.chibi_mascot",
+    "name": "Chibi Test Scout NPC",
+    "subject": "Compact stylized scout non-player character for pipeline QA",
+    "visualStyle": "Stylized chibi, small web-friendly game asset with clean readable shapes and teal/amber scout colors",
+    "requiredParts": [
+      "chibi body",
+      "head",
+      "ponytail hair",
+      "hooded outfit",
+      "satchel accessory",
+      "hands",
+      "feet",
+      "simple facial features"
+    ],
+    "materialPalette": [
+      "teal fabric",
+      "amber accents",
+      "warm skin",
+      "dark neutral boots and belt",
+      "brown satchel"
+    ],
+    "styleConfig": {
+      "preset": "custom",
+      "colors": {
+        "primary": "#168C8C",
+        "secondary": "#F2A23A",
+        "accent": "#C07A2C",
+        "neutral": "#3A3330",
+        "emission": "#000000"
+      }
+    },
+    "rigTarget": "humanoid Mixamo best-effort",
+    "animationClips": [
+      {
+        "name": "Idle_Stationary",
+        "label": "Idle Stationary"
+      },
+      {
+        "name": "Walk_InPlace",
+        "label": "Walk In Place"
+      },
+      {
+        "name": "Wave_Greeting",
+        "label": "Wave Greeting"
+      }
+    ],
+    "rigPlan": {
+      "preset": "humanoid Mixamo best-effort",
+      "exportMixamo": true,
+      "controls": [
+        "humanoid root",
+        "hips",
+        "spine",
+        "head",
+        "arms",
+        "hands",
+        "legs",
+        "feet",
+        "ponytail helper control"
+      ]
+    },
+    "viewerFraming": "Centered full-body front three-quarter view with compact chibi proportions and satchel visible",
+    "budget": {
+      "maxTriangles": 12000,
+      "maxMaterials": 4,
+      "maxGlbMb": 4,
+      "approvedOverBudget": false
+    },
+    "vfx": null,
+    "character": {
+      "silhouette": "compact chibi scout with oversized head, small body, hood framing the face, side-visible satchel, and ponytail silhouette",
+      "hairType": "ponytail",
+      "hairColor": "#3A3330",
+      "bodyType": "chibi",
+      "skinTone": "#C98F68",
+      "outfit": "hooded scout outfit with tunic, short cloak or hood panel, belt, boots, and satchel",
+      "outfitStyle": "stylized adventure scout with teal main fabric and amber trim",
+      "accessories": [
+        "satchel"
+      ]
+    },
+    "furniture": null,
+    "plant": null,
+    "prop": null
+  },
+  "paths": {
+    "blend": "public/models/chibi-test-scout-npc.blend",
+    "glb": "public/models/chibi-test-scout-npc.glb",
+    "preview": "public/renders/chibi-test-scout-npc-preview.png",
+    "metadata": "public/models/chibi-test-scout-npc.metadata.json"
+  },
+  "counts": {
+    "objects": 32,
+    "mesh_objects": 27,
+    "geometry_objects": 27,
+    "materials": 6,
+    "triangles": 12744,
+    "bones": 18,
+    "animations": 3
+  },
+  "materials": [
+    "MAT_Agent_AccentGlow",
+    "MAT_Agent_DarkTrim",
+    "MAT_Agent_Hair",
+    "MAT_Agent_Primary",
+    "MAT_Agent_SkinTone",
+    "MAT_Shadow_BakedSoftContact"
+  ],
+  "style": {
+    "preset": "custom",
+    "colors": {
+      "primary": "#168C8C",
+      "secondary": "#F2A23A",
+      "accent": "#C07A2C",
+      "neutral": "#3A3330",
+      "emission": "#000000"
+    }
+  },
+  "animations": {
+    "clips": [
+      "Idle_Stationary",
+      "Walk_InPlace",
+      "Wave_Greeting"
+    ],
+    "default": "Idle_Stationary",
+    "embedded_in_glb": true,
+    "authored_actions": [
+      "Idle_Stationary",
+      "Walk_InPlace",
+      "Wave_Greeting"
+    ]
+  },
+  "rig": {
+    "type": "humanoid Mixamo best-effort",
+    "root": "RIG_chibi_test_scout_npc_BasicArmature",
+    "rig_depth": "basic named humanoid armature with whole-part vertex groups"
+  },
+  "rig_plan": {
+    "preset": "humanoid Mixamo best-effort",
+    "exportMixamo": true,
+    "controls": [
+      "humanoid root",
+      "hips",
+      "spine",
+      "head",
+      "arms",
+      "hands",
+      "legs",
+      "feet",
+      "ponytail helper control"
+    ]
+  },
+  "authored": {
+    "family": "Character",
+    "target": "Character asset-generation showcase",
+    "effects": "chibi body, head, ponytail hair, hooded outfit, satchel accessory, hands, feet, simple facial features, teal fabric, amber accents, warm skin, dark neutral boots and belt, brown satchel"
+  },
+  "viewer": {
+    "placement": {
+      "mode": "floor-y",
+      "offset": [
+        0,
+        0,
+        0
+      ]
+    },
+    "initialTransform": {
+      "rotation": [
+        0,
+        -0.22,
+        0
+      ],
+      "scale": 1
+    },
+    "camera": {
+      "desktop": {
+        "position": [
+          2.0,
+          1.45,
+          6.2
+        ],
+        "target": [
+          0,
+          1.35,
+          0
+        ]
+      },
+      "mobile": {
+        "position": [
+          1.05,
+          1.25,
+          6.8
+        ],
+        "target": [
+          0,
+          1.45,
+          0
+        ]
+      },
+      "focus": {
+        "position": [
+          1.0,
+          1.85,
+          4.05
+        ],
+        "target": [
+          0,
+          1.95,
+          0
+        ]
+      }
+    }
+  },
+  "bounds": {
+    "min": [
+      -0.6717,
+      -0.396,
+      -0.0377
+    ],
+    "max": [
+      0.745,
+      0.5089,
+      2.12
+    ],
+    "size": [
+      1.4167,
+      0.9049,
+      2.1577
+    ],
+    "center": [
+      0.0366,
+      0.0564,
+      1.0412
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 12000,
+    "glb_size_warning_bytes": 4194304,
+    "material_warning": 4
+  },
+  "file_sizes": {
+    "blend_bytes": 294615,
+    "glb_bytes": 513956,
+    "preview_bytes": 1429766
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": true,
+    "source": "OnTheSpectrum generated Blender pipeline"
+  },
+  "notes": [
+    "Generated by the reusable OnTheSpectrum character pipeline.",
+    "Humanoid Mixamo exports are best-effort and may need manual adjustment for stylized proportions.",
+    "Display base and contact shadow are excluded from Mixamo exports."
+  ]
+}

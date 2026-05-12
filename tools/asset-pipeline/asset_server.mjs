@@ -88,8 +88,21 @@ function buildBriefFromForm(form = {}) {
     `Style: ${text(form.style, "Stylized OnTheSpectrum procedural asset")}`,
     `Required parts: ${listText(form.requiredParts, ["primary silhouette", "detail accents", "display base"])}`,
     `Materials/colors: ${listText(form.materials, ["matte primary color", "secondary accent", "soft contact shadow"])}`,
-    `Rigging: ${family === "vfx" ? "simple transform rig" : text(form.rigging, "none")}`,
+    `Style config: ${text(form.stylePreset, "studio teal")}; primary ${text(form.colorPrimary, "#5f95b8")}, secondary ${text(form.colorSecondary, "#d96f52")}, accent ${text(form.colorAccent, "#2ed7e6")}, neutral ${text(form.colorNeutral, "#22272b")}, emission ${text(form.colorEmission, "#45f0ff")}`,
+    `Rigging: ${family === "vfx" ? "simple transform rig" : text(form.rigging, "none")}; export Mixamo: ${form.exportMixamo ? "yes" : "no"}`,
     `Animations: ${text(form.animations, "default")}${text(form.animationNotes) ? `, ${text(form.animationNotes)}` : ""}`,
+    family === "character"
+      ? `Character features: ${text(form.bodyType, "standard")} body, ${text(form.hairType, "short")} hair ${text(form.hairColor, "#22272b")}, skin ${text(form.skinTone, "#d9a77f")}, outfit ${text(form.outfitStyle, "stylized modular outfit")}, accessories ${listText(form.accessories, ["none"])}`
+      : null,
+    family === "furniture"
+      ? `Furniture features: ${text(form.furnitureCategory, "custom")}, ${text(form.woodStyle, "warm oak")}, upholstery ${text(form.upholstery, "none")}, mechanical parts ${listText(form.mechanicalParts, []) || "none"}`
+      : null,
+    family === "plant"
+      ? `Plant features: ${name}, ${text(form.leafShape, "rounded stylized leaves")}, ${text(form.blossomStyle, "small accent blossoms")}`
+      : null,
+    family === "prop"
+      ? `Prop features: ${text(form.propCategory, "custom")}, ${text(form.shapeLanguage, "rounded readable primary form")}`
+      : null,
     family === "vfx" ? `Motion behavior: ${text(form.motionBehavior, "Looping transform motion with baked mesh accents")}` : null,
     family === "vfx" ? `Duration and loop: ${text(form.loopMode, "looping")}, ${text(form.durationSeconds, "4")} seconds` : null,
     family === "vfx" ? `Emission source: ${text(form.emissionSource, "free-floating")}` : null,

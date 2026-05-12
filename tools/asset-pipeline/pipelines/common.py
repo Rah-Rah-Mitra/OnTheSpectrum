@@ -42,6 +42,14 @@ DEFAULT_BUDGET = {
     "approvedOverBudget": False,
 }
 
+DEFAULT_STYLE_COLORS = {
+    "primary": "#5f95b8",
+    "secondary": "#d96f52",
+    "accent": "#2ed7e6",
+    "neutral": "#22272b",
+    "emission": "#45f0ff",
+}
+
 
 def relative(path: str | Path) -> str:
     return str(Path(path).relative_to(REPO_ROOT)).replace("\\", "/")
@@ -70,6 +78,22 @@ def display_family(spec: dict) -> str:
     if family == "plant":
         return "Botanical"
     return family[:1].upper() + family[1:]
+
+
+def hex_to_rgba(value: str | None, fallback: str = "#ffffff", alpha: float = 1.0) -> tuple[float, float, float, float]:
+    token = value if isinstance(value, str) and len(value) == 7 and value.startswith("#") else fallback
+    try:
+        red = int(token[1:3], 16) / 255
+        green = int(token[3:5], 16) / 255
+        blue = int(token[5:7], 16) / 255
+    except ValueError:
+        return hex_to_rgba(fallback, "#ffffff", alpha)
+    return (red, green, blue, alpha)
+
+
+def style_colors(spec: dict) -> dict[str, str]:
+    colors = ((spec.get("styleConfig") or {}).get("colors") or {}) if isinstance(spec.get("styleConfig"), dict) else {}
+    return {key: colors.get(key) or fallback for key, fallback in DEFAULT_STYLE_COLORS.items()}
 
 
 def operator_kwargs(operator, kwargs: dict) -> dict:
@@ -223,20 +247,20 @@ def setup_lighting_and_camera(spec: dict, *, camera_loc=(2.2, -5.0, 2.0), target
 
 
 def create_palette(spec: dict) -> dict[str, bpy.types.Material]:
-    palette = spec.get("materialPalette") or []
-    primary = make_mat("MAT_Agent_Primary", (0.42, 0.58, 0.72, 1), roughness=0.72)
-    secondary = make_mat("MAT_Agent_Secondary", (0.85, 0.42, 0.32, 1), roughness=0.74)
+    colors = style_colors(spec)
+    primary = make_mat("MAT_Agent_Primary", hex_to_rgba(colors["primary"]), roughness=0.72)
+    secondary = make_mat("MAT_Agent_Secondary", hex_to_rgba(colors["secondary"]), roughness=0.74)
     accent = make_mat(
         "MAT_Agent_AccentGlow",
-        (0.18, 0.86, 0.92, 0.72),
+        hex_to_rgba(colors["accent"], alpha=0.72),
         roughness=0.34,
         alpha=0.72,
-        emission=(0.12, 0.82, 0.95, 1),
+        emission=hex_to_rgba(colors["emission"]),
         emission_strength=1.5,
     )
     accent.blend_method = "BLEND"
-    dark = make_mat("MAT_Agent_DarkTrim", (0.08, 0.09, 0.095, 1), roughness=0.84)
-    base = make_mat("MAT_Agent_DisplayBase", (0.075, 0.085, 0.09, 1), roughness=0.9)
+    dark = make_mat("MAT_Agent_DarkTrim", hex_to_rgba(colors["neutral"]), roughness=0.84)
+    base = make_mat("MAT_Agent_DisplayBase", hex_to_rgba(colors["neutral"], alpha=1.0), roughness=0.9)
     shadow = make_mat("MAT_Shadow_BakedSoftContact", (0.018, 0.02, 0.023, 0.52), roughness=0.92, alpha=0.52)
     return {
         "primary": primary,
@@ -245,6 +269,16 @@ def create_palette(spec: dict) -> dict[str, bpy.types.Material]:
         "dark": dark,
         "base": base,
         "shadow": shadow,
+        "skin": make_mat(
+            "MAT_Agent_SkinTone",
+            hex_to_rgba((spec.get("character") or {}).get("skinTone"), "#d9a77f"),
+            roughness=0.68,
+        ),
+        "hair": make_mat(
+            "MAT_Agent_Hair",
+            hex_to_rgba((spec.get("character") or {}).get("hairColor"), colors["neutral"]),
+            roughness=0.76,
+        ),
     }
 
 
@@ -403,6 +437,7 @@ def collect_metadata(
             "animations": len(actions),
         },
         "materials": material_names(geometries),
+        "style": spec.get("styleConfig") or {},
         "animations": {
             "clips": [clip["name"] for clip in spec.get("animationClips", [])],
             "default": spec.get("animationClips", [{}])[0].get("name", "") if spec.get("animationClips") else "",
@@ -410,6 +445,7 @@ def collect_metadata(
             "authored_actions": actions,
         },
         "rig": rig,
+        "rig_plan": spec.get("rigPlan") or {},
         "authored": {
             "family": display_family(spec),
             "target": f"{display_family(spec)} asset-generation showcase",

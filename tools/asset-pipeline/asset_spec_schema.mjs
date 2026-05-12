@@ -8,6 +8,16 @@ export const rigTargets = [
   "curve or emitter controls",
 ];
 
+export const stylePresets = ["studio teal", "warm fantasy", "forest natural", "violet arcane", "custom"];
+
+export const colorTokenPattern = "^#[0-9A-Fa-f]{6}$";
+
+export const characterHairTypes = ["short", "bob", "long", "ponytail", "spiky", "curly", "bald"];
+export const characterBodyTypes = ["standard", "chibi", "slim", "sturdy"];
+export const furnitureCategories = ["chair", "table", "workbench", "bed", "shelf", "stall", "cabinet", "custom"];
+export const furnitureWoodStyles = ["warm oak", "dark walnut", "painted wood", "metal frame", "stone", "custom"];
+export const propCategories = ["orb", "tool", "weapon", "container", "beacon", "machine", "treasure", "custom"];
+
 export const pipelineCatalog = {
   "character.humanoid_basic": {
     family: "character",
@@ -83,6 +93,43 @@ const nullableObject = (properties, required = []) => ({
   ],
 });
 
+const styleColorSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    primary: { type: "string", pattern: colorTokenPattern },
+    secondary: { type: "string", pattern: colorTokenPattern },
+    accent: { type: "string", pattern: colorTokenPattern },
+    neutral: { type: "string", pattern: colorTokenPattern },
+    emission: { type: "string", pattern: colorTokenPattern },
+  },
+  required: ["primary", "secondary", "accent", "neutral", "emission"],
+};
+
+const styleConfigSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    preset: { type: "string", enum: stylePresets },
+    colors: styleColorSchema,
+  },
+  required: ["preset", "colors"],
+};
+
+const rigPlanSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    preset: { type: "string", enum: rigTargets },
+    exportMixamo: { type: "boolean" },
+    controls: {
+      type: "array",
+      items: { type: "string" },
+    },
+  },
+  required: ["preset", "exportMixamo", "controls"],
+};
+
 export const assetSpecJsonSchema = {
   type: "object",
   additionalProperties: false,
@@ -110,10 +157,12 @@ export const assetSpecJsonSchema = {
       type: "array",
       items: { type: "string" },
     },
+    styleConfig: styleConfigSchema,
     rigTarget: {
       type: "string",
       enum: rigTargets,
     },
+    rigPlan: rigPlanSchema,
     animationClips: {
       type: "array",
       items: animationClipSchema,
@@ -177,37 +226,47 @@ export const assetSpecJsonSchema = {
     character: nullableObject(
       {
         silhouette: { type: "string" },
+        hairType: { type: "string", enum: characterHairTypes },
+        hairColor: { type: "string", pattern: colorTokenPattern },
+        bodyType: { type: "string", enum: characterBodyTypes },
+        skinTone: { type: "string", pattern: colorTokenPattern },
         outfit: { type: "string" },
+        outfitStyle: { type: "string" },
         accessories: {
           type: "array",
           items: { type: "string" },
         },
       },
-      ["silhouette", "outfit", "accessories"],
+      ["silhouette", "hairType", "hairColor", "bodyType", "skinTone", "outfit", "outfitStyle", "accessories"],
     ),
     furniture: nullableObject(
       {
-        category: { type: "string" },
+        category: { type: "string", enum: furnitureCategories },
+        woodStyle: { type: "string", enum: furnitureWoodStyles },
+        upholstery: { type: "string" },
         mechanicalParts: {
           type: "array",
           items: { type: "string" },
         },
       },
-      ["category", "mechanicalParts"],
+      ["category", "woodStyle", "upholstery", "mechanicalParts"],
     ),
     plant: nullableObject(
       {
         botanicalType: { type: "string" },
+        leafShape: { type: "string" },
+        blossomStyle: { type: "string" },
         swayIntensity: { type: "string" },
       },
-      ["botanicalType", "swayIntensity"],
+      ["botanicalType", "leafShape", "blossomStyle", "swayIntensity"],
     ),
     prop: nullableObject(
       {
-        category: { type: "string" },
+        category: { type: "string", enum: propCategories },
+        shapeLanguage: { type: "string" },
         displayMotion: { type: "string" },
       },
-      ["category", "displayMotion"],
+      ["category", "shapeLanguage", "displayMotion"],
     ),
   },
   required: [
@@ -219,7 +278,9 @@ export const assetSpecJsonSchema = {
     "visualStyle",
     "requiredParts",
     "materialPalette",
+    "styleConfig",
     "rigTarget",
+    "rigPlan",
     "animationClips",
     "viewerFraming",
     "budget",

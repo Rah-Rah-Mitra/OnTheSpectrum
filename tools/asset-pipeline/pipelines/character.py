@@ -97,15 +97,87 @@ def create_pose_action(armature: bpy.types.Object, name: str, frames: list[tuple
     strip.frame_end = end
 
 
+def create_hair(spec: dict, mats: dict, armature: bpy.types.Object) -> list[bpy.types.Object]:
+    character = spec.get("character") or {}
+    hair_type = character.get("hairType", "short")
+    if hair_type == "bald":
+        return []
+    parts = []
+    cap = common.uv_sphere(
+        "HAIR_AgentCharacter_StyleCap",
+        (0, -0.01, 1.92),
+        (0.31, 0.28, 0.16),
+        mats["hair"],
+        segments=32,
+        rings=12,
+        collection_name="HAIR",
+    )
+    parts.append(cap)
+
+    if hair_type in {"short", "bob", "long", "ponytail", "curly"}:
+        locks = [
+            ("FrontCenter", [(0, -0.255, 1.98), (0.02, -0.32, 1.8), (-0.02, -0.27, 1.66)], 0.025),
+            ("SideLeft", [(-0.22, -0.16, 1.9), (-0.3, -0.18, 1.62), (-0.24, -0.11, 1.32)], 0.03),
+            ("SideRight", [(0.22, -0.16, 1.9), (0.3, -0.18, 1.62), (0.24, -0.11, 1.32)], 0.03),
+        ]
+        if hair_type == "short":
+            locks = locks[:1]
+        if hair_type == "long":
+            locks.extend(
+                [
+                    ("BackLeft", [(-0.17, 0.16, 1.86), (-0.25, 0.17, 1.35), (-0.2, 0.1, 0.92)], 0.035),
+                    ("BackRight", [(0.17, 0.16, 1.86), (0.25, 0.17, 1.35), (0.2, 0.1, 0.92)], 0.035),
+                ],
+            )
+        if hair_type == "ponytail":
+            locks.append(("Ponytail", [(0, 0.23, 1.82), (0, 0.45, 1.42), (0, 0.36, 1.02)], 0.055))
+        for name, points, depth in locks:
+            parts.append(common.bevel_curve(f"HAIR_AgentCharacter_{name}", points, mats["hair"], bevel_depth=depth, collection_name="HAIR"))
+    elif hair_type == "spiky":
+        for index, x in enumerate((-0.18, -0.06, 0.06, 0.18), start=1):
+            spike = common.cone(
+                f"HAIR_AgentCharacter_Spike_{index}",
+                (x, -0.08, 2.08),
+                0.065,
+                0.015,
+                0.34,
+                mats["hair"],
+                vertices=18,
+                rotation=(radians(10), radians(8 * (index - 2)), 0),
+                collection_name="HAIR",
+            )
+            parts.append(spike)
+    elif hair_type == "curly":
+        for index, x in enumerate((-0.22, -0.11, 0, 0.11, 0.22), start=1):
+            curl = common.uv_sphere(
+                f"HAIR_AgentCharacter_Curl_{index}",
+                (x, -0.2, 1.88 + (index % 2) * 0.04),
+                (0.07, 0.055, 0.07),
+                mats["hair"],
+                segments=16,
+                rings=8,
+                collection_name="HAIR",
+            )
+            parts.append(curl)
+
+    for part in parts:
+        bind_whole_part(part, armature, "head")
+    return parts
+
+
 def generate(spec: dict) -> dict:
     mats = common.prepare_scene(spec, frame_end=84)
     armature = create_armature(spec)
     parts = [armature]
+    character = spec.get("character") or {}
 
-    chibi = spec.get("pipelineId") == "character.chibi_mascot"
+    chibi = spec.get("pipelineId") == "character.chibi_mascot" or character.get("bodyType") == "chibi"
+    slim = character.get("bodyType") == "slim"
+    sturdy = character.get("bodyType") == "sturdy"
+    torso_scale = (0.27, 0.2, 0.5) if slim else (0.42, 0.29, 0.5) if sturdy else (0.34, 0.24, 0.48)
     head_scale = (0.36, 0.32, 0.36) if chibi else (0.28, 0.25, 0.3)
-    torso = common.uv_sphere("CHR_AgentCharacter_Torso", (0, 0, 1.08), (0.34, 0.24, 0.48), mats["primary"], segments=32, rings=16, collection_name="CHARACTER_BODY")
-    head = common.uv_sphere("CHR_AgentCharacter_Head", (0, -0.02, 1.76), head_scale, mats["secondary"], segments=32, rings=16, collection_name="CHARACTER_BODY")
+    torso = common.uv_sphere("CHR_AgentCharacter_Torso", (0, 0, 1.08), torso_scale, mats["primary"], segments=32, rings=16, collection_name="CHARACTER_BODY")
+    head = common.uv_sphere("CHR_AgentCharacter_Head", (0, -0.02, 1.76), head_scale, mats["skin"], segments=32, rings=16, collection_name="CHARACTER_BODY")
     parts.extend([torso, head])
     bind_whole_part(torso, armature, "spine")
     bind_whole_part(head, armature, "head")
@@ -121,7 +193,8 @@ def generate(spec: dict) -> dict:
         ("CHR_AgentCharacter_Shin_R", (0.18, -0.02, 0.24), "shin.R"),
     ]
     for name, loc, bone_name in limb_specs:
-        limb = common.uv_sphere(name, loc, (0.105, 0.095, 0.22), mats["dark"], segments=20, rings=10, collection_name="CHARACTER_BODY")
+        limb_width = 0.085 if slim else 0.12 if sturdy else 0.105
+        limb = common.uv_sphere(name, loc, (limb_width, 0.095, 0.22), mats["dark"], segments=20, rings=10, collection_name="CHARACTER_BODY")
         parts.append(limb)
         bind_whole_part(limb, armature, bone_name)
 
@@ -141,6 +214,19 @@ def generate(spec: dict) -> dict:
     parts.extend([left_eye, right_eye])
     bind_whole_part(left_eye, armature, "head")
     bind_whole_part(right_eye, armature, "head")
+    parts.extend(create_hair(spec, mats, armature))
+    for index, label in enumerate((character.get("accessories") or [])[:4]):
+        accessory = common.cube(
+            f"PROP_AgentCharacter_Accessory_{index + 1}",
+            (-0.22 + index * 0.15, -0.29, 1.12 - (index % 2) * 0.18),
+            (0.052, 0.035, 0.08),
+            mats["secondary" if index % 2 else "accent"],
+            bevel=0.012,
+            collection_name="PROPS",
+        )
+        accessory["asset_part_hint"] = label
+        parts.append(accessory)
+        bind_whole_part(accessory, armature, "chest")
     shadow = common.add_contact_shadow("BASE_AgentCharacter_ContactShadow", 0.55)
     parts.append(shadow)
 
@@ -181,7 +267,11 @@ def generate(spec: dict) -> dict:
             )
 
     common.setup_lighting_and_camera(spec, camera_loc=(2.25, -5.4, 2.05), target=(0, 0, 1.35))
-    mixamo_objects = [armature] + [obj for obj in parts if obj.type == "MESH" and not obj.name.startswith("BASE_")]
+    mixamo_objects = (
+        [armature] + [obj for obj in parts if obj.type == "MESH" and not obj.name.startswith("BASE_")]
+        if (spec.get("rigPlan") or {}).get("exportMixamo", True)
+        else None
+    )
     paths = common.export_asset(spec, parts, animations=bool(clip_names), frame=24, mixamo_objects=mixamo_objects)
     return common.collect_metadata(
         spec,

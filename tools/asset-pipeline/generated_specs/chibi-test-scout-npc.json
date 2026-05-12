@@ -1,0 +1,88 @@
+{
+  "slug": "chibi-test-scout-npc",
+  "assetFamily": "character",
+  "pipelineId": "character.chibi_mascot",
+  "name": "Chibi Test Scout NPC",
+  "subject": "Compact stylized scout non-player character for pipeline QA",
+  "visualStyle": "Stylized chibi, small web-friendly game asset with clean readable shapes and teal/amber scout colors",
+  "requiredParts": [
+    "chibi body",
+    "head",
+    "ponytail hair",
+    "hooded outfit",
+    "satchel accessory",
+    "hands",
+    "feet",
+    "simple facial features"
+  ],
+  "materialPalette": [
+    "teal fabric",
+    "amber accents",
+    "warm skin",
+    "dark neutral boots and belt",
+    "brown satchel"
+  ],
+  "styleConfig": {
+    "preset": "custom",
+    "colors": {
+      "primary": "#168C8C",
+      "secondary": "#F2A23A",
+      "accent": "#C07A2C",
+      "neutral": "#3A3330",
+      "emission": "#000000"
+    }
+  },
+  "rigTarget": "humanoid Mixamo best-effort",
+  "animationClips": [
+    {
+      "name": "Idle_Stationary",
+      "label": "Idle Stationary"
+    },
+    {
+      "name": "Walk_InPlace",
+      "label": "Walk In Place"
+    },
+    {
+      "name": "Wave_Greeting",
+      "label": "Wave Greeting"
+    }
+  ],
+  "rigPlan": {
+    "preset": "humanoid Mixamo best-effort",
+    "exportMixamo": true,
+    "controls": [
+      "humanoid root",
+      "hips",
+      "spine",
+      "head",
+      "arms",
+      "hands",
+      "legs",
+      "feet",
+      "ponytail helper control"
+    ]
+  },
+  "viewerFraming": "Centered full-body front three-quarter view with compact chibi proportions and satchel visible",
+  "budget": {
+    "maxTriangles": 12000,
+    "maxMaterials": 4,
+    "maxGlbMb": 4,
+    "approvedOverBudget": false
+  },
+  "vfx": null,
+  "character": {
+    "silhouette": "compact chibi scout with oversized head, small body, hood framing the face, side-visible satchel, and ponytail silhouette",
+    "hairType": "ponytail",
+    "hairColor": "#3A3330",
+    "bodyType": "chibi",
+    "skinTone": "#C98F68",
+    "outfit": "hooded scout outfit with tunic, short cloak or hood panel, belt, boots, and satchel",
+    "outfitStyle": "stylized adventure scout with teal main fabric and amber trim",
+    "accessories": [
+      "satchel"
+    ]
+  },
+  "furniture": null,
+  "plant": null,
+  "prop": null
+}

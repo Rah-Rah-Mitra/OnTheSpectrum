@@ -125,6 +125,7 @@ npm run qa:viewer    # Browser QA for asset viewer
 npm run qa:world     # Browser QA for World 3D
 npm run asset:agent  # Generate an asset from a brief
 npm run asset:exports
+npm run qa:agents    # Deterministic AssetSpec/world JSON normalization checks
 ```
 
 ## Verification
@@ -133,6 +134,7 @@ Before sharing a build, run:
 
 ```powershell
 npm run build
+npm run qa:agents
 npm run qa:viewer
 npm run qa:world
 ```

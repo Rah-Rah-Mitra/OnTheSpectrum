@@ -1,5 +1,164 @@
 [
   {
+    "id": "chibi-test-scout-npc",
+    "name": "Chibi Test Scout NPC",
+    "shortName": "Chibi Test Scout NPC",
+    "description": "Stylized chibi, small web-friendly game asset with clean readable shapes and teal/amber scout colors Compact stylized scout non-player character for pipeline QA, generated procedurally in Blender.",
+    "modelUrl": "/models/chibi-test-scout-npc.glb",
+    "blendUrl": "/models/chibi-test-scout-npc.blend",
+    "previewUrl": "/renders/chibi-test-scout-npc-preview.png",
+    "metadataUrl": "/models/chibi-test-scout-npc.metadata.json",
+    "downloadName": "chibi-test-scout-npc.glb",
+    "blendDownloadName": "chibi-test-scout-npc.blend",
+    "snapshotName": "chibi-test-scout-npc-snapshot.png",
+    "sourceLabel": "OnTheSpectrum asset agent",
+    "defaultAnimation": "Idle_Stationary",
+    "animationClips": [
+      {
+        "name": "Idle_Stationary",
+        "label": "Idle Stationary"
+      },
+      {
+        "name": "Walk_InPlace",
+        "label": "Walk In Place"
+      },
+      {
+        "name": "Wave_Greeting",
+        "label": "Wave Greeting"
+      }
+    ],
+    "exports": [
+      {
+        "id": "web-glb",
+        "label": "Web GLB",
+        "detail": "Animated viewer file",
+        "href": "/models/chibi-test-scout-npc.glb",
+        "downloadName": "chibi-test-scout-npc.glb"
+      },
+      {
+        "id": "mixamo-fbx",
+        "label": "Mixamo FBX",
+        "detail": "Best-effort rigged upload",
+        "href": "/exports/chibi-test-scout-npc/chibi-test-scout-npc-mixamo.fbx",
+        "downloadName": "chibi-test-scout-npc-mixamo.fbx"
+      },
+      {
+        "id": "mixamo-obj-zip",
+        "label": "OBJ ZIP",
+        "detail": "Unrigged Mixamo fallback",
+        "href": "/exports/chibi-test-scout-npc/chibi-test-scout-npc-mixamo-obj.zip",
+        "downloadName": "chibi-test-scout-npc-mixamo-obj.zip"
+      },
+      {
+        "id": "blend",
+        "label": "Blender source",
+        "detail": "Animated source scene",
+        "href": "/models/chibi-test-scout-npc.blend",
+        "downloadName": "chibi-test-scout-npc.blend"
+      }
+    ],
+    "placement": {
+      "mode": "floor-y",
+      "offset": [
+        0,
+        0,
+        0
+      ]
+    },
+    "initialTransform": {
+      "rotation": [
+        0,
+        -0.22,
+        0
+      ],
+      "scale": 1
+    },
+    "camera": {
+      "desktop": {
+        "position": [
+          2,
+          1.45,
+          6.2
+        ],
+        "target": [
+          0,
+          1.35,
+          0
+        ]
+      },
+      "mobile": {
+        "position": [
+          1.05,
+          1.25,
+          6.8
+        ],
+        "target": [
+          0,
+          1.45,
+          0
+        ]
+      },
+      "focus": {
+        "position": [
+          1,
+          1.85,
+          4.05
+        ],
+        "target": [
+          0,
+          1.95,
+          0
+        ]
+      }
+    },
+    "authored": {
+      "family": "Character",
+      "target": "Character asset-generation showcase",
+      "rig": "humanoid Mixamo best-effort",
+      "effects": "chibi body, head, ponytail hair, hooded outfit, satchel accessory, hands, feet, simple facial features, teal fabric, amber accents, warm skin, dark neutral boots and belt, brown satchel",
+      "sourceScene": "public/models/chibi-test-scout-npc.blend",
+      "preview": "public/renders/chibi-test-scout-npc-preview.png"
+    },
+    "metadataFallback": {
+      "counts": {
+        "objects": 32,
+        "mesh_objects": 27,
+        "geometry_objects": 27,
+        "materials": 6,
+        "triangles": 12744,
+        "bones": 18,
+        "animations": 3
+      },
+      "bounds": {
+        "min": [
+          -0.6717,
+          -0.396,
+          -0.0377
+        ],
+        "max": [
+          0.745,
+          0.5089,
+          2.12
+        ],
+        "size": [
+          1.4167,
+          0.9049,
+          2.1577
+        ],
+        "center": [
+          0.0366,
+          0.0564,
+          1.0412
+        ]
+      },
+      "file_sizes": {
+        "blend_bytes": 294615,
+        "glb_bytes": 513956,
+        "preview_bytes": 1429766
+      }
+    }
+  },
+  {
     "id": "codex-smoke-beacon-prop",
     "name": "Codex Smoke Beacon Prop",
     "shortName": "Codex Smoke Beacon Prop",
@@ -128,6 +287,143 @@
         "blend_bytes": 141122,
         "glb_bytes": 80508,
         "preview_bytes": 1388316
+      }
+    }
+  },
+  {
+    "id": "compact-clockwork-reading-chair",
+    "name": "Compact Clockwork Reading Chair",
+    "shortName": "Compact Clockwork Reading Chair",
+    "description": "Stylized compact mechanical reading chair with polished clockwork details and QA-friendly clear part separation. Compact clockwork reading chair for pipeline QA with dark walnut frame, teal upholstery, brass accents, and a small tilting back mechanism., generated procedurally in Blender.",
+    "modelUrl": "/models/compact-clockwork-reading-chair.glb",
+    "blendUrl": "/models/compact-clockwork-reading-chair.blend",
+    "previewUrl": "/renders/compact-clockwork-reading-chair-preview.png",
+    "metadataUrl": "/models/compact-clockwork-reading-chair.metadata.json",
+    "downloadName": "compact-clockwork-reading-chair.glb",
+    "blendDownloadName": "compact-clockwork-reading-chair.blend",
+    "snapshotName": "compact-clockwork-reading-chair-snapshot.png",
+    "sourceLabel": "OnTheSpectrum asset agent",
+    "defaultAnimation": "Recline_Test",
+    "animationClips": [
+      {
+        "name": "Recline_Test",
+        "label": "Recline_Test transform animation"
+      }
+    ],
+    "exports": [
+      {
+        "id": "web-glb",
+        "label": "Web GLB",
+        "detail": "Animated viewer file",
+        "href": "/models/compact-clockwork-reading-chair.glb",
+        "downloadName": "compact-clockwork-reading-chair.glb"
+      },
+      {
+        "id": "blend",
+        "label": "Blender source",
+        "detail": "Animated source scene",
+        "href": "/models/compact-clockwork-reading-chair.blend",
+        "downloadName": "compact-clockwork-reading-chair.blend"
+      }
+    ],
+    "placement": {
+      "mode": "floor-y",
+      "offset": [
+        0,
+        0,
+        0
+      ]
+    },
+    "initialTransform": {
+      "rotation": [
+        0,
+        -0.22,
+        0
+      ],
+      "scale": 1
+    },
+    "camera": {
+      "desktop": {
+        "position": [
+          1.9,
+          0.9,
+          3.1
+        ],
+        "target": [
+          0,
+          0.55,
+          0
+        ]
+      },
+      "mobile": {
+        "position": [
+          0.95,
+          0.82,
+          3.8
+        ],
+        "target": [
+          0,
+          0.55,
+          0
+        ]
+      },
+      "focus": {
+        "position": [
+          1.1,
+          0.78,
+          2
+        ],
+        "target": [
+          0,
+          0.62,
+          0
+        ]
+      }
+    },
+    "authored": {
+      "family": "Furniture",
+      "target": "Furniture asset-generation showcase",
+      "rig": "simple transform rig",
+      "effects": "dark walnut chair frame, teal upholstered seat cushion, teal upholstered back cushion, brass accent trim, visible clockwork details, small tilting back mechanical part, dark walnut wood, teal upholstery fabric, brass metal accents",
+      "sourceScene": "public/models/compact-clockwork-reading-chair.blend",
+      "preview": "public/renders/compact-clockwork-reading-chair-preview.png"
+    },
+    "metadataFallback": {
+      "counts": {
+        "objects": 22,
+        "mesh_objects": 17,
+        "geometry_objects": 17,
+        "materials": 5,
+        "triangles": 3196,
+        "bones": 0,
+        "animations": 1
+      },
+      "bounds": {
+        "min": [
+          -0.92,
+          -0.6624,
+          0
+        ],
+        "max": [
+          0.92,
+          0.6624,
+          1.44
+        ],
+        "size": [
+          1.84,
+          1.3248,
+          1.44
+        ],
+        "center": [
+          0,
+          0,
+          0.72
+        ]
+      },
+      "file_sizes": {
+        "blend_bytes": 128929,
+        "glb_bytes": 95724,
+        "preview_bytes": 1367106
       }
     }
   }

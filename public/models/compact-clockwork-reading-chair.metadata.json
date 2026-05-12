@@ -1,0 +1,231 @@
+{
+  "asset": "Compact Clockwork Reading Chair",
+  "slug": "compact-clockwork-reading-chair",
+  "generator": "create_compact_clockwork_reading_chair.py",
+  "spec": {
+    "slug": "compact-clockwork-reading-chair",
+    "assetFamily": "furniture",
+    "pipelineId": "furniture.static_or_mechanical",
+    "name": "Compact Clockwork Reading Chair",
+    "subject": "Compact clockwork reading chair for pipeline QA with dark walnut frame, teal upholstery, brass accents, and a small tilting back mechanism.",
+    "visualStyle": "Stylized compact mechanical reading chair with polished clockwork details and QA-friendly clear part separation.",
+    "requiredParts": [
+      "dark walnut chair frame",
+      "teal upholstered seat cushion",
+      "teal upholstered back cushion",
+      "brass accent trim",
+      "visible clockwork details",
+      "small tilting back mechanical part"
+    ],
+    "materialPalette": [
+      "dark walnut wood",
+      "teal upholstery fabric",
+      "brass metal accents"
+    ],
+    "styleConfig": {
+      "preset": "studio teal",
+      "colors": {
+        "primary": "#0F6F73",
+        "secondary": "#3A2417",
+        "accent": "#C49A3A",
+        "neutral": "#2B2B2B",
+        "emission": "#000000"
+      }
+    },
+    "rigTarget": "simple transform rig",
+    "animationClips": [
+      {
+        "name": "Recline_Test",
+        "label": "Recline_Test transform animation"
+      }
+    ],
+    "rigPlan": {
+      "preset": "simple transform rig",
+      "exportMixamo": false,
+      "controls": [
+        "tilting back transform control"
+      ]
+    },
+    "viewerFraming": "Compact chair centered in view, three-quarter angle showing upholstery, brass clockwork accents, and tilting back mechanism.",
+    "budget": {
+      "maxTriangles": 12000,
+      "maxMaterials": 4,
+      "maxGlbMb": 8,
+      "approvedOverBudget": false
+    },
+    "vfx": null,
+    "character": null,
+    "furniture": {
+      "category": "chair",
+      "woodStyle": "dark walnut",
+      "upholstery": "teal upholstery",
+      "mechanicalParts": [
+        "small tilting back"
+      ]
+    },
+    "plant": null,
+    "prop": null
+  },
+  "paths": {
+    "blend": "public/models/compact-clockwork-reading-chair.blend",
+    "glb": "public/models/compact-clockwork-reading-chair.glb",
+    "preview": "public/renders/compact-clockwork-reading-chair-preview.png",
+    "metadata": "public/models/compact-clockwork-reading-chair.metadata.json"
+  },
+  "counts": {
+    "objects": 22,
+    "mesh_objects": 17,
+    "geometry_objects": 17,
+    "materials": 5,
+    "triangles": 3196,
+    "bones": 0,
+    "animations": 1
+  },
+  "materials": [
+    "MAT_Agent_AccentGlow",
+    "MAT_Agent_DarkTrim",
+    "MAT_Agent_Primary",
+    "MAT_Agent_Secondary",
+    "MAT_Shadow_BakedSoftContact"
+  ],
+  "style": {
+    "preset": "studio teal",
+    "colors": {
+      "primary": "#0F6F73",
+      "secondary": "#3A2417",
+      "accent": "#C49A3A",
+      "neutral": "#2B2B2B",
+      "emission": "#000000"
+    }
+  },
+  "animations": {
+    "clips": [
+      "Recline_Test"
+    ],
+    "default": "Recline_Test",
+    "embedded_in_glb": true,
+    "authored_actions": [
+      "Recline_Test"
+    ]
+  },
+  "rig": {
+    "type": "simple transform rig",
+    "root": "ANIM_AgentFurniture_MechanicalRoot",
+    "animated_controls": [
+      "ANIM_AgentFurniture_MechanicalRoot"
+    ],
+    "family_preset": "chair"
+  },
+  "rig_plan": {
+    "preset": "simple transform rig",
+    "exportMixamo": false,
+    "controls": [
+      "tilting back transform control"
+    ]
+  },
+  "authored": {
+    "family": "Furniture",
+    "target": "Furniture asset-generation showcase",
+    "effects": "dark walnut chair frame, teal upholstered seat cushion, teal upholstered back cushion, brass accent trim, visible clockwork details, small tilting back mechanical part, dark walnut wood, teal upholstery fabric, brass metal accents"
+  },
+  "viewer": {
+    "placement": {
+      "mode": "floor-y",
+      "offset": [
+        0,
+        0,
+        0
+      ]
+    },
+    "initialTransform": {
+      "rotation": [
+        0,
+        -0.22,
+        0
+      ],
+      "scale": 1
+    },
+    "camera": {
+      "desktop": {
+        "position": [
+          1.9,
+          0.9,
+          3.1
+        ],
+        "target": [
+          0,
+          0.55,
+          0
+        ]
+      },
+      "mobile": {
+        "position": [
+          0.95,
+          0.82,
+          3.8
+        ],
+        "target": [
+          0,
+          0.55,
+          0
+        ]
+      },
+      "focus": {
+        "position": [
+          1.1,
+          0.78,
+          2.0
+        ],
+        "target": [
+          0,
+          0.62,
+          0
+        ]
+      }
+    }
+  },
+  "bounds": {
+    "min": [
+      -0.92,
+      -0.6624,
+      0.0
+    ],
+    "max": [
+      0.92,
+      0.6624,
+      1.44
+    ],
+    "size": [
+      1.84,
+      1.3248,
+      1.44
+    ],
+    "center": [
+      0.0,
+      0.0,
+      0.72
+    ]
+  },
+  "budgets": {
+    "triangle_warning": 12000,
+    "glb_size_warning_bytes": 8388608,
+    "material_warning": 4
+  },
+  "file_sizes": {
+    "blend_bytes": 128929,
+    "glb_bytes": 95724,
+    "preview_bytes": 1367106
+  },
+  "export": {
+    "format": "GLB",
+    "export_yup": true,
+    "applied_export_transforms": true,
+    "animations": true,
+    "source": "OnTheSpectrum generated Blender pipeline"
+  },
+  "notes": [
+    "Generated by the reusable OnTheSpectrum furniture pipeline.",
+    "Furniture uses transform animation only when clips are requested.",
+    "Mixamo exports are intentionally omitted for furniture assets."
+  ]
+}

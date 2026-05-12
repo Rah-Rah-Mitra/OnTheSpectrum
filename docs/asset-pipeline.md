@@ -4,14 +4,14 @@ This repo produces Blender-sourced assets plus a web-ready Three.js viewer. Blen
 
 ## Flow
 
-1. Convert the brief into an asset spec with slug, subject, asset family, required components, material palette, rig target, budget, and viewer pose.
+1. Convert the brief into an asset spec with slug, subject, asset family, required components, material palette, structured style config, rig plan, family features, budget, and viewer pose.
 2. Run `python tools/asset-pipeline/preflight_blender.py`.
 3. Use the live Blender MCP bridge when available. Use `BLENDER_PATH` background Blender only when configured.
 4. Generate the source scene procedurally in Blender.
 5. Save `.blend`, export animated `.glb`, render preview `.png`, and write metadata JSON.
 6. Update the React/Vite/Three.js viewer manifest to load the new GLB.
 7. For humanoid assets that need Mixamo upload support, generate best-effort `.fbx` plus OBJ/MTL `.zip` exports.
-8. Run build and browser QA on desktop and mobile.
+8. Run deterministic agent JSON QA, build, and browser QA on desktop and mobile.
 
 Use `npm run asset:mixamo-exports` to refresh only existing humanoid Mixamo upload files without rewriting web GLBs, preview renders, or source blends.
 
@@ -31,6 +31,10 @@ Use `npm run asset:mixamo-exports` to refresh only existing humanoid Mixamo uplo
 - Materials: prefix with `MAT_`.
 - Character meshes: prefix with `CHR_`, `FACE_`, `HAIR_`, `OUT_`, `PROP_`, or `BASE_`.
 - Armatures: prefix with `RIG_`; armature data prefix with `ARM_`.
+
+## Structured Prompt Controls
+
+Generated specs carry `styleConfig` and `rigPlan` as first-class fields. Family-specific fields such as character `hairType`, `bodyType`, `skinTone`, furniture `category`, prop `shapeLanguage`, and VFX `motionBehavior` should be honored by the reusable Blender pipelines rather than treated as prose-only hints.
 
 ## Web Budgets
 

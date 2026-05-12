@@ -1,0 +1,64 @@
+{
+  "slug": "compact-clockwork-reading-chair",
+  "assetFamily": "furniture",
+  "pipelineId": "furniture.static_or_mechanical",
+  "name": "Compact Clockwork Reading Chair",
+  "subject": "Compact clockwork reading chair for pipeline QA with dark walnut frame, teal upholstery, brass accents, and a small tilting back mechanism.",
+  "visualStyle": "Stylized compact mechanical reading chair with polished clockwork details and QA-friendly clear part separation.",
+  "requiredParts": [
+    "dark walnut chair frame",
+    "teal upholstered seat cushion",
+    "teal upholstered back cushion",
+    "brass accent trim",
+    "visible clockwork details",
+    "small tilting back mechanical part"
+  ],
+  "materialPalette": [
+    "dark walnut wood",
+    "teal upholstery fabric",
+    "brass metal accents"
+  ],
+  "styleConfig": {
+    "preset": "studio teal",
+    "colors": {
+      "primary": "#0F6F73",
+      "secondary": "#3A2417",
+      "accent": "#C49A3A",
+      "neutral": "#2B2B2B",
+      "emission": "#000000"
+    }
+  },
+  "rigTarget": "simple transform rig",
+  "animationClips": [
+    {
+      "name": "Recline_Test",
+      "label": "Recline_Test transform animation"
+    }
+  ],
+  "rigPlan": {
+    "preset": "simple transform rig",
+    "exportMixamo": false,
+    "controls": [
+      "tilting back transform control"
+    ]
+  },
+  "viewerFraming": "Compact chair centered in view, three-quarter angle showing upholstery, brass clockwork accents, and tilting back mechanism.",
+  "budget": {
+    "maxTriangles": 12000,
+    "maxMaterials": 4,
+    "maxGlbMb": 8,
+    "approvedOverBudget": false
+  },
+  "vfx": null,
+  "character": null,
+  "furniture": {
+    "category": "chair",
+    "woodStyle": "dark walnut",
+    "upholstery": "teal upholstery",
+    "mechanicalParts": [
+      "small tilting back"
+    ]
+  },
+  "plant": null,
+  "prop": null
+}

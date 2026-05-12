@@ -5,17 +5,34 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { probeBlenderMcp, runGeneratorViaMcp } from "./blender_mcp_client.mjs";
 import {
   assetFamilies,
+  characterBodyTypes,
+  characterHairTypes,
+  colorTokenPattern,
   assetSpecJsonSchema,
   defaultPipelineForFamily,
+  furnitureCategories,
+  furnitureWoodStyles,
   pipelineCatalog,
   pipelineIds,
+  propCategories,
   rigTargets,
+  stylePresets,
 } from "./asset_spec_schema.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const generatedRegistryPath = path.join(repoRoot, "src", "assets", "generatedAssetRegistry.json");
 const generatedSpecDir = path.join(repoRoot, "tools", "asset-pipeline", "generated_specs");
 const defaultBudget = { maxTriangles: 100000, maxMaterials: 16, maxGlbMb: 12, approvedOverBudget: false };
+const defaultStyleConfig = {
+  preset: "studio teal",
+  colors: {
+    primary: "#5f95b8",
+    secondary: "#d96f52",
+    accent: "#2ed7e6",
+    neutral: "#22272b",
+    emission: "#45f0ff",
+  },
+};
 
 function parseArgs(argv) {
   const args = {};
@@ -78,6 +95,54 @@ function asList(value, fallback = []) {
   return fallback;
 }
 
+function asEnum(value, allowed, fallback) {
+  const normalized = String(value || "").trim();
+  return allowed.includes(normalized) ? normalized : fallback;
+}
+
+function normalizeHexColor(value, fallback) {
+  const normalized = String(value || "").trim();
+  return new RegExp(colorTokenPattern).test(normalized) ? normalized : fallback;
+}
+
+function normalizeStyleConfig(value = {}, materialPalette = []) {
+  const colors = value?.colors && typeof value.colors === "object" ? value.colors : {};
+  const inferredPreset = stylePresets.includes(value?.preset) ? value.preset : "custom";
+  const paletteText = Array.isArray(materialPalette) ? materialPalette.join(" ").toLowerCase() : "";
+  const fallbackPreset =
+    /violet|purple|arcane|rift|magic/.test(paletteText) ? "violet arcane"
+    : /forest|leaf|moss|green|botanical/.test(paletteText) ? "forest natural"
+    : /warm|oak|leather|brass|fantasy/.test(paletteText) ? "warm fantasy"
+    : defaultStyleConfig.preset;
+  return {
+    preset: value?.preset ? inferredPreset : fallbackPreset,
+    colors: {
+      primary: normalizeHexColor(colors.primary, defaultStyleConfig.colors.primary),
+      secondary: normalizeHexColor(colors.secondary, defaultStyleConfig.colors.secondary),
+      accent: normalizeHexColor(colors.accent, defaultStyleConfig.colors.accent),
+      neutral: normalizeHexColor(colors.neutral, defaultStyleConfig.colors.neutral),
+      emission: normalizeHexColor(colors.emission, defaultStyleConfig.colors.emission),
+    },
+  };
+}
+
+function defaultControls(assetFamily, rigTarget, animationClips = []) {
+  if (assetFamily === "character") return ["root", "pelvis", "spine", "head", "hands", "feet"];
+  if (assetFamily === "vfx") return ["effectRoot", "orbitRoot"];
+  if (assetFamily === "plant") return ["swayRoot"];
+  if (animationClips.length || rigTarget !== "none") return ["root"];
+  return [];
+}
+
+function normalizeRigPlan(value = {}, assetFamily, rigTarget, animationClips = []) {
+  const preset = asEnum(value?.preset || rigTarget, rigTargets, rigTarget);
+  return {
+    preset,
+    exportMixamo: Boolean(value?.exportMixamo ?? (assetFamily === "character" && preset === "humanoid Mixamo best-effort")),
+    controls: asList(value?.controls, defaultControls(assetFamily, preset, animationClips)),
+  };
+}
+
 function normalizeClips(clips, pipelineId, assetFamily) {
   const provided = Array.isArray(clips)
     ? clips
@@ -92,17 +157,92 @@ function normalizeClips(clips, pipelineId, assetFamily) {
   return pipelineCatalog[pipelineId]?.defaultClips ?? [];
 }
 
+function normalizeFamilyConfig(rawSpec, specBase) {
+  const { assetFamily, name, visualStyle, requiredParts, animationClips, styleConfig } = specBase;
+  const character = rawSpec.character && typeof rawSpec.character === "object" ? rawSpec.character : {};
+  const furniture = rawSpec.furniture && typeof rawSpec.furniture === "object" ? rawSpec.furniture : {};
+  const plant = rawSpec.plant && typeof rawSpec.plant === "object" ? rawSpec.plant : {};
+  const prop = rawSpec.prop && typeof rawSpec.prop === "object" ? rawSpec.prop : {};
+  if (assetFamily === "character") {
+    const bodyType = asEnum(character.bodyType, characterBodyTypes, specBase.pipelineId === "character.chibi_mascot" ? "chibi" : "standard");
+    return {
+      character: {
+        silhouette: String(character.silhouette || visualStyle || "stylized readable humanoid").trim(),
+        hairType: asEnum(character.hairType, characterHairTypes, /spiky/i.test(visualStyle) ? "spiky" : "short"),
+        hairColor: normalizeHexColor(character.hairColor, styleConfig.colors.neutral),
+        bodyType,
+        skinTone: normalizeHexColor(character.skinTone, "#d9a77f"),
+        outfit: String(character.outfit || requiredParts.join(", ") || "layered adventure outfit").trim(),
+        outfitStyle: String(character.outfitStyle || requiredParts.slice(0, 3).join(", ") || "stylized modular outfit").trim(),
+        accessories: asList(character.accessories, requiredParts.slice(0, 4)),
+      },
+      furniture: null,
+      plant: null,
+      prop: null,
+    };
+  }
+  if (assetFamily === "furniture") {
+    return {
+      character: null,
+      furniture: {
+        category: asEnum(furniture.category, furnitureCategories, /chair/i.test(name) ? "chair" : /table/i.test(name) ? "table" : /shelf/i.test(name) ? "shelf" : "custom"),
+        woodStyle: asEnum(furniture.woodStyle, furnitureWoodStyles, "warm oak"),
+        upholstery: String(furniture.upholstery || "none").trim(),
+        mechanicalParts: asList(furniture.mechanicalParts, animationClips.length ? requiredParts.slice(0, 3) : []),
+      },
+      plant: null,
+      prop: null,
+    };
+  }
+  if (assetFamily === "plant") {
+    return {
+      character: null,
+      furniture: null,
+      plant: {
+        botanicalType: String(plant.botanicalType || name).trim(),
+        leafShape: String(plant.leafShape || "rounded stylized leaves").trim(),
+        blossomStyle: String(plant.blossomStyle || "small accent blossoms").trim(),
+        swayIntensity: String(plant.swayIntensity || (animationClips.length ? "gentle" : "none")).trim(),
+      },
+      prop: null,
+    };
+  }
+  if (assetFamily === "prop") {
+    return {
+      character: null,
+      furniture: null,
+      plant: null,
+      prop: {
+        category: asEnum(prop.category, propCategories, "custom"),
+        shapeLanguage: String(prop.shapeLanguage || "rounded readable primary form with detail accents").trim(),
+        displayMotion: String(prop.displayMotion || (animationClips[0]?.name ?? "none")).trim(),
+      },
+    };
+  }
+  return {
+    character: null,
+    furniture: null,
+    plant: null,
+    prop: null,
+  };
+}
+
 function normalizeSpec(rawSpec, sourceBrief = "") {
   const name = String(rawSpec.name || rawSpec.subject || "Generated Asset").trim();
   const assetFamily = String(rawSpec.assetFamily || rawSpec.family || "prop").toLowerCase();
   const normalizedFamily = assetFamilies.includes(assetFamily) ? assetFamily : "prop";
   const pipelineId = rawSpec.pipelineId || defaultPipelineForFamily(normalizedFamily, sourceBrief);
-  const rigTarget = rigTargets.includes(rawSpec.rigTarget)
+  let rigTarget = rigTargets.includes(rawSpec.rigTarget)
     ? rawSpec.rigTarget
     : pipelineCatalog[pipelineId]?.defaultRig ?? "none";
   const requiredParts = asList(rawSpec.requiredParts, ["primary silhouette", "detail accents", "display base"]);
   const materialPalette = asList(rawSpec.materialPalette, ["matte main color", "secondary accent", "soft contact shadow"]);
-  return {
+  const styleConfig = normalizeStyleConfig(rawSpec.styleConfig, materialPalette);
+  const animationClips = normalizeClips(rawSpec.animationClips, pipelineId, normalizedFamily);
+  if ((normalizedFamily === "furniture" || normalizedFamily === "prop") && animationClips.length && rigTarget === "none") {
+    rigTarget = "simple transform rig";
+  }
+  const specBase = {
     slug: slugify(rawSpec.slug || name),
     assetFamily: normalizedFamily,
     pipelineId,
@@ -111,18 +251,22 @@ function normalizeSpec(rawSpec, sourceBrief = "") {
     visualStyle: String(rawSpec.visualStyle || rawSpec.style || "Stylized OnTheSpectrum procedural asset").trim(),
     requiredParts,
     materialPalette,
+    styleConfig,
     rigTarget,
-    animationClips: normalizeClips(rawSpec.animationClips, pipelineId, normalizedFamily),
+    animationClips,
+  };
+  const rigPlan = normalizeRigPlan(rawSpec.rigPlan, normalizedFamily, rigTarget, animationClips);
+  const familyConfig = normalizeFamilyConfig(rawSpec, specBase);
+  return {
+    ...specBase,
+    rigPlan,
     viewerFraming: String(rawSpec.viewerFraming || "Centered front-quarter viewer framing").trim(),
     budget: {
       ...defaultBudget,
       ...(rawSpec.budget && typeof rawSpec.budget === "object" ? rawSpec.budget : {}),
     },
     vfx: rawSpec.vfx ?? null,
-    character: rawSpec.character ?? null,
-    furniture: rawSpec.furniture ?? null,
-    plant: rawSpec.plant ?? null,
-    prop: rawSpec.prop ?? null,
+    ...familyConfig,
   };
 }
 
@@ -140,7 +284,13 @@ function validateSpec(spec) {
   if (!spec.visualStyle) errors.push("visualStyle is required");
   if (!spec.requiredParts.length) errors.push("requiredParts must include at least one part");
   if (!spec.materialPalette.length) errors.push("materialPalette must include at least one material/color");
+  if (!stylePresets.includes(spec.styleConfig?.preset)) errors.push(`styleConfig.preset must be one of: ${stylePresets.join(", ")}`);
+  for (const [key, value] of Object.entries(spec.styleConfig?.colors || {})) {
+    if (!new RegExp(colorTokenPattern).test(value)) errors.push(`styleConfig.colors.${key} must be a #RRGGBB color`);
+  }
   if (!rigTargets.includes(spec.rigTarget)) errors.push(`rigTarget must be one of: ${rigTargets.join(", ")}`);
+  if (!spec.rigPlan || !rigTargets.includes(spec.rigPlan.preset)) errors.push("rigPlan.preset must match a supported rig target");
+  if (spec.rigPlan?.exportMixamo && spec.assetFamily !== "character") errors.push("rigPlan.exportMixamo is only supported for character assets");
   if (spec.assetFamily === "vfx" && !spec.vfx) errors.push("vfx details are required for VFX assets");
   if (spec.budget.maxTriangles > 100000 && !spec.budget.approvedOverBudget) {
     errors.push("maxTriangles exceeds 100000 without approvedOverBudget");
@@ -176,7 +326,7 @@ async function specFromOpenAI({ brief, family }) {
       {
         role: "system",
         content:
-          "You normalize OnTheSpectrum Blender asset briefs into one strict AssetSpec. Select only an allowed pipelineId. Do not invent file paths. Keep budgets at or below warning limits unless explicitly approved.",
+          "You normalize OnTheSpectrum Blender asset briefs into one strict AssetSpec. Select only an allowed pipelineId. Preserve explicit styleConfig colors, rigPlan, family feature choices such as hairType/bodyType/furniture category, and requested animation clips. Do not invent file paths. Keep budgets at or below warning limits unless explicitly approved.",
       },
       {
         role: "user",

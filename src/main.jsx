@@ -127,6 +127,38 @@ const vfxFamilies = [
 
 const emissionSources = ["point", "ring", "object-bound", "ground plane", "character-bound", "free-floating"];
 const transparencyStyles = ["additive glow", "alpha-blended smoke", "opaque stylized mesh", "mixed"];
+const stylePresetOptions = [
+  {
+    id: "studio teal",
+    label: "Studio Teal",
+    colors: { primary: "#5f95b8", secondary: "#d96f52", accent: "#2ed7e6", neutral: "#22272b", emission: "#45f0ff" },
+  },
+  {
+    id: "warm fantasy",
+    label: "Warm Fantasy",
+    colors: { primary: "#b87943", secondary: "#e0b15c", accent: "#db6f4d", neutral: "#2b2320", emission: "#ffc65c" },
+  },
+  {
+    id: "forest natural",
+    label: "Forest Natural",
+    colors: { primary: "#5b8d55", secondary: "#9f7a43", accent: "#cfe37a", neutral: "#243027", emission: "#9dff9f" },
+  },
+  {
+    id: "violet arcane",
+    label: "Violet Arcane",
+    colors: { primary: "#6f5fb8", secondary: "#b85fa6", accent: "#42d8f0", neutral: "#201b2b", emission: "#b46cff" },
+  },
+  {
+    id: "custom",
+    label: "Custom",
+    colors: { primary: "#5f95b8", secondary: "#d96f52", accent: "#2ed7e6", neutral: "#22272b", emission: "#45f0ff" },
+  },
+];
+const characterHairTypes = ["short", "bob", "long", "ponytail", "spiky", "curly", "bald"];
+const characterBodyTypes = ["standard", "chibi", "slim", "sturdy"];
+const furnitureCategories = ["chair", "table", "workbench", "bed", "shelf", "stall", "cabinet", "custom"];
+const furnitureWoodStyles = ["warm oak", "dark walnut", "painted wood", "metal frame", "stone", "custom"];
+const propCategories = ["orb", "tool", "weapon", "container", "beacon", "machine", "treasure", "custom"];
 
 const defaultAssetGeneratorForm = {
   type: "character",
@@ -135,8 +167,29 @@ const defaultAssetGeneratorForm = {
   requiredParts: "",
   materials: "",
   rigging: "humanoid Mixamo best-effort",
+  exportMixamo: true,
   animations: "default",
   animationNotes: "",
+  stylePreset: "studio teal",
+  colorPrimary: "#5f95b8",
+  colorSecondary: "#d96f52",
+  colorAccent: "#2ed7e6",
+  colorNeutral: "#22272b",
+  colorEmission: "#45f0ff",
+  hairType: "short",
+  hairColor: "#22272b",
+  bodyType: "standard",
+  skinTone: "#d9a77f",
+  outfitStyle: "",
+  accessories: "",
+  furnitureCategory: "custom",
+  woodStyle: "warm oak",
+  upholstery: "none",
+  mechanicalParts: "",
+  leafShape: "rounded stylized leaves",
+  blossomStyle: "small accent blossoms",
+  propCategory: "custom",
+  shapeLanguage: "rounded readable primary form",
   viewerFraming: "",
   freeformBrief: "",
   vfxFamily: "portal",
@@ -204,11 +257,51 @@ function buildGeneratorClips(form) {
   return [];
 }
 
+function buildStyleConfig(form) {
+  return {
+    preset: form.stylePreset,
+    colors: {
+      primary: form.colorPrimary,
+      secondary: form.colorSecondary,
+      accent: form.colorAccent,
+      neutral: form.colorNeutral,
+      emission: form.colorEmission,
+    },
+  };
+}
+
+function buildRigPlan(form, rigTarget, animationClips) {
+  const controls =
+    form.type === "character"
+      ? ["root", "pelvis", "spine", "head", "hands", "feet"]
+      : form.type === "vfx"
+        ? ["effectRoot", "orbitRoot"]
+        : form.type === "plant"
+          ? ["swayRoot"]
+          : animationClips.length || rigTarget !== "none"
+            ? ["root"]
+            : [];
+  return {
+    preset: rigTarget,
+    exportMixamo: form.type === "character" && Boolean(form.exportMixamo),
+    controls,
+  };
+}
+
 function buildGeneratorSpec(form) {
   const name = form.name.trim() || `${assetGeneratorTypes.find((item) => item.id === form.type)?.label ?? "Asset"} Concept`;
   const requiredParts = splitFormList(form.requiredParts, ["primary silhouette", "detail accents", "display base"]);
   const materialPalette = splitFormList(form.materials, ["matte primary color", "secondary accent", "soft contact shadow"]);
   const animationClips = buildGeneratorClips(form);
+  const styleConfig = buildStyleConfig(form);
+  const rigTarget =
+    form.type === "vfx"
+      ? "simple transform rig"
+      : form.type === "plant"
+        ? "simple transform rig"
+        : (form.type === "furniture" || form.type === "prop") && animationClips.length
+          ? "simple transform rig"
+          : form.rigging;
   const baseSpec = {
     slug: slugifyForAsset(name),
     assetFamily: form.type,
@@ -218,12 +311,9 @@ function buildGeneratorSpec(form) {
     visualStyle: form.style.trim() || "Stylized OnTheSpectrum procedural asset",
     requiredParts,
     materialPalette,
-    rigTarget:
-      form.type === "vfx"
-        ? "simple transform rig"
-        : form.type === "plant"
-          ? "simple transform rig"
-          : form.rigging,
+    styleConfig,
+    rigTarget,
+    rigPlan: buildRigPlan(form, rigTarget, animationClips),
     animationClips,
     viewerFraming: form.viewerFraming.trim() || "Centered front-quarter viewer framing",
     budget: {
@@ -252,18 +342,37 @@ function buildGeneratorSpec(form) {
   if (form.type === "character") {
     baseSpec.character = {
       silhouette: form.style.trim() || "stylized readable humanoid",
+      hairType: form.hairType,
+      hairColor: form.hairColor,
+      bodyType: form.bodyType,
+      skinTone: form.skinTone,
       outfit: requiredParts.join(", "),
-      accessories: requiredParts.slice(0, 4),
+      outfitStyle: form.outfitStyle.trim() || requiredParts.slice(0, 3).join(", "),
+      accessories: splitFormList(form.accessories, requiredParts.slice(0, 4)),
     };
   }
   if (form.type === "furniture") {
-    baseSpec.furniture = { category: name, mechanicalParts: animationClips.length ? requiredParts.slice(0, 3) : [] };
+    baseSpec.furniture = {
+      category: form.furnitureCategory,
+      woodStyle: form.woodStyle,
+      upholstery: form.upholstery.trim() || "none",
+      mechanicalParts: splitFormList(form.mechanicalParts, animationClips.length ? requiredParts.slice(0, 3) : []),
+    };
   }
   if (form.type === "plant") {
-    baseSpec.plant = { botanicalType: name, swayIntensity: animationClips.length ? "gentle" : "none" };
+    baseSpec.plant = {
+      botanicalType: name,
+      leafShape: form.leafShape.trim() || "rounded stylized leaves",
+      blossomStyle: form.blossomStyle.trim() || "small accent blossoms",
+      swayIntensity: animationClips.length ? "gentle" : "none",
+    };
   }
   if (form.type === "prop") {
-    baseSpec.prop = { category: name, displayMotion: animationClips.length ? animationClips[0].name : "none" };
+    baseSpec.prop = {
+      category: form.propCategory,
+      shapeLanguage: form.shapeLanguage.trim() || "rounded readable primary form",
+      displayMotion: animationClips.length ? animationClips[0].name : "none",
+    };
   }
   return baseSpec;
 }
@@ -276,8 +385,19 @@ function buildAssetGenerationBrief(form, spec) {
     `Style: ${spec.visualStyle}`,
     `Required parts: ${spec.requiredParts.join(", ")}`,
     `Materials/colors: ${spec.materialPalette.join(", ")}`,
-    `Rigging: ${spec.rigTarget}`,
+    `Style config: ${spec.styleConfig.preset}; primary ${spec.styleConfig.colors.primary}, secondary ${spec.styleConfig.colors.secondary}, accent ${spec.styleConfig.colors.accent}, neutral ${spec.styleConfig.colors.neutral}, emission ${spec.styleConfig.colors.emission}`,
+    `Rigging: ${spec.rigTarget}; export Mixamo: ${spec.rigPlan.exportMixamo ? "yes" : "no"}; controls: ${spec.rigPlan.controls.join(", ") || "none"}`,
     `Animations: ${spec.animationClips.length ? spec.animationClips.map((clip) => clip.name).join(", ") : "none"}`,
+    form.type === "character"
+      ? `Character features: ${spec.character.bodyType} body, ${spec.character.hairType} hair ${spec.character.hairColor}, skin ${spec.character.skinTone}, outfit ${spec.character.outfitStyle}, accessories ${spec.character.accessories.join(", ") || "none"}`
+      : null,
+    form.type === "furniture"
+      ? `Furniture features: ${spec.furniture.category}, ${spec.furniture.woodStyle}, upholstery ${spec.furniture.upholstery}, mechanical parts ${spec.furniture.mechanicalParts.join(", ") || "none"}`
+      : null,
+    form.type === "plant"
+      ? `Plant features: ${spec.plant.botanicalType}, ${spec.plant.leafShape}, ${spec.plant.blossomStyle}, sway ${spec.plant.swayIntensity}`
+      : null,
+    form.type === "prop" ? `Prop features: ${spec.prop.category}, ${spec.prop.shapeLanguage}, display motion ${spec.prop.displayMotion}` : null,
     form.type === "vfx" ? `Motion behavior: ${spec.vfx.motionBehavior}` : null,
     form.type === "vfx" ? `Duration and loop: ${spec.vfx.loop ? "looping" : "one-shot"}, ${spec.vfx.durationSeconds} seconds` : null,
     form.type === "vfx" ? `Emission source: ${spec.vfx.emissionSource}` : null,
@@ -3717,18 +3837,36 @@ function AssetGeneratorPage({ activeTab, onNavigate }) {
   function updateField(field, value) {
     setForm((current) => {
       const next = { ...current, [field]: value };
+      if (field === "stylePreset") {
+        const preset = stylePresetOptions.find((item) => item.id === value);
+        if (preset && value !== "custom") {
+          next.colorPrimary = preset.colors.primary;
+          next.colorSecondary = preset.colors.secondary;
+          next.colorAccent = preset.colors.accent;
+          next.colorNeutral = preset.colors.neutral;
+          next.colorEmission = preset.colors.emission;
+          next.hairColor = preset.colors.neutral;
+        }
+      }
       if (field === "type") {
-        if (value === "character") next.rigging = "humanoid Mixamo best-effort";
+        if (value === "character") {
+          next.rigging = "humanoid Mixamo best-effort";
+          next.exportMixamo = true;
+          next.animations = "default";
+        }
         if (value === "furniture" || value === "prop") {
           next.rigging = "none";
+          next.exportMixamo = false;
           next.animations = "none";
         }
         if (value === "plant") {
           next.rigging = "simple transform rig";
+          next.exportMixamo = false;
           next.animations = "default";
         }
         if (value === "vfx") {
           next.rigging = "simple transform rig";
+          next.exportMixamo = false;
           next.animations = "default";
         }
       }
@@ -3825,6 +3963,36 @@ function AssetGeneratorPage({ activeTab, onNavigate }) {
                 onChange={(event) => updateField("style", event.target.value)}
               />
             </label>
+            <label>
+              <span>Color Scheme</span>
+              <select value={form.stylePreset} onChange={(event) => updateField("stylePreset", event.target.value)}>
+                {stylePresetOptions.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Primary</span>
+              <input type="color" value={form.colorPrimary} onChange={(event) => updateField("colorPrimary", event.target.value)} />
+            </label>
+            <label>
+              <span>Secondary</span>
+              <input type="color" value={form.colorSecondary} onChange={(event) => updateField("colorSecondary", event.target.value)} />
+            </label>
+            <label>
+              <span>Accent</span>
+              <input type="color" value={form.colorAccent} onChange={(event) => updateField("colorAccent", event.target.value)} />
+            </label>
+            <label>
+              <span>Neutral</span>
+              <input type="color" value={form.colorNeutral} onChange={(event) => updateField("colorNeutral", event.target.value)} />
+            </label>
+            <label>
+              <span>Glow</span>
+              <input type="color" value={form.colorEmission} onChange={(event) => updateField("colorEmission", event.target.value)} />
+            </label>
             {!isVfx ? (
               <label>
                 <span>Rigging</span>
@@ -3855,7 +4023,149 @@ function AssetGeneratorPage({ activeTab, onNavigate }) {
                 <option value="specific">specific clips</option>
               </select>
             </label>
+            {form.type === "character" ? (
+              <label>
+                <span>Mixamo Export</span>
+                <select value={form.exportMixamo ? "yes" : "no"} onChange={(event) => updateField("exportMixamo", event.target.value === "yes")}>
+                  <option value="yes">yes</option>
+                  <option value="no">no</option>
+                </select>
+              </label>
+            ) : null}
           </div>
+
+          {form.type === "character" ? (
+            <div className="generator-vfx-fields">
+              <div className="generator-form-grid">
+                <label>
+                  <span>Hair</span>
+                  <select value={form.hairType} onChange={(event) => updateField("hairType", event.target.value)}>
+                    {characterHairTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Body</span>
+                  <select value={form.bodyType} onChange={(event) => updateField("bodyType", event.target.value)}>
+                    {characterBodyTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Hair Color</span>
+                  <input type="color" value={form.hairColor} onChange={(event) => updateField("hairColor", event.target.value)} />
+                </label>
+                <label>
+                  <span>Skin Tone</span>
+                  <input type="color" value={form.skinTone} onChange={(event) => updateField("skinTone", event.target.value)} />
+                </label>
+              </div>
+              <label className="full-field">
+                <span>
+                  <Paintbrush aria-hidden="true" />
+                  Outfit Style
+                </span>
+                <textarea value={form.outfitStyle} onChange={(event) => updateField("outfitStyle", event.target.value)} rows="3" />
+              </label>
+              <label className="full-field">
+                <span>
+                  <Tags aria-hidden="true" />
+                  Accessories
+                </span>
+                <textarea value={form.accessories} onChange={(event) => updateField("accessories", event.target.value)} rows="3" />
+              </label>
+            </div>
+          ) : null}
+
+          {form.type === "furniture" ? (
+            <div className="generator-vfx-fields">
+              <div className="generator-form-grid">
+                <label>
+                  <span>Category</span>
+                  <select value={form.furnitureCategory} onChange={(event) => updateField("furnitureCategory", event.target.value)}>
+                    {furnitureCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Material</span>
+                  <select value={form.woodStyle} onChange={(event) => updateField("woodStyle", event.target.value)}>
+                    {furnitureWoodStyles.map((style) => (
+                      <option key={style} value={style}>
+                        {style}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="full-field">
+                <span>
+                  <Paintbrush aria-hidden="true" />
+                  Upholstery
+                </span>
+                <input value={form.upholstery} onChange={(event) => updateField("upholstery", event.target.value)} />
+              </label>
+              <label className="full-field">
+                <span>
+                  <SlidersHorizontal aria-hidden="true" />
+                  Mechanical Parts
+                </span>
+                <textarea value={form.mechanicalParts} onChange={(event) => updateField("mechanicalParts", event.target.value)} rows="3" />
+              </label>
+            </div>
+          ) : null}
+
+          {form.type === "plant" ? (
+            <div className="generator-vfx-fields">
+              <label className="full-field">
+                <span>
+                  <Paintbrush aria-hidden="true" />
+                  Leaf Shape
+                </span>
+                <input value={form.leafShape} onChange={(event) => updateField("leafShape", event.target.value)} />
+              </label>
+              <label className="full-field">
+                <span>
+                  <Sparkles aria-hidden="true" />
+                  Blossom Style
+                </span>
+                <input value={form.blossomStyle} onChange={(event) => updateField("blossomStyle", event.target.value)} />
+              </label>
+            </div>
+          ) : null}
+
+          {form.type === "prop" ? (
+            <div className="generator-vfx-fields">
+              <div className="generator-form-grid">
+                <label>
+                  <span>Prop Kind</span>
+                  <select value={form.propCategory} onChange={(event) => updateField("propCategory", event.target.value)}>
+                    {propCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="full-field">
+                <span>
+                  <Paintbrush aria-hidden="true" />
+                  Shape Language
+                </span>
+                <textarea value={form.shapeLanguage} onChange={(event) => updateField("shapeLanguage", event.target.value)} rows="3" />
+              </label>
+            </div>
+          ) : null}
 
           <label className="full-field">
             <span>

@@ -6,34 +6,52 @@ Use this contract for future generated assets.
 {
   "slug": "on_the_spectrum-painter-chibi",
   "name": "OnTheSpectrum Painter Chibi",
-  "family": "character",
+  "assetFamily": "character",
+  "pipelineId": "character.chibi_mascot",
   "subject": "original anime chibi painter mascot",
-  "target": "rig-ready web showcase",
-  "seed": "optional deterministic seed",
-  "paths": {
-    "blend": "public/models/<slug>.blend",
-    "glb": "public/models/<slug>.glb",
-    "preview": "public/renders/<slug>-preview.png",
-    "metadata": "public/models/<slug>.metadata.json"
+  "visualStyle": "stylized readable game asset",
+  "requiredParts": ["head", "hair", "eyes", "outfit", "props", "base", "armature"],
+  "materialPalette": ["teal cloth", "ivory apron", "coral trim"],
+  "styleConfig": {
+    "preset": "studio teal",
+    "colors": {
+      "primary": "#5f95b8",
+      "secondary": "#d96f52",
+      "accent": "#2ed7e6",
+      "neutral": "#22272b",
+      "emission": "#45f0ff"
+    }
   },
-  "components": ["head", "hair", "eyes", "outfit", "props", "base", "armature"],
-  "materials": ["MAT_*"],
+  "rigTarget": "humanoid Mixamo best-effort",
+  "rigPlan": {
+    "preset": "humanoid Mixamo best-effort",
+    "exportMixamo": true,
+    "controls": ["root", "pelvis", "spine", "head", "hands", "feet"]
+  },
+  "animationClips": [
+    { "name": "Idle_Stationary", "label": "Idle" },
+    { "name": "Walk_InPlace", "label": "Walk" }
+  ],
+  "character": {
+    "silhouette": "compact chibi humanoid",
+    "hairType": "short",
+    "hairColor": "#22272b",
+    "bodyType": "chibi",
+    "skinTone": "#d9a77f",
+    "outfit": "teal jacket and ivory apron",
+    "outfitStyle": "stylized studio painter",
+    "accessories": ["satchel", "stylus-brush"]
+  },
+  "furniture": null,
+  "plant": null,
+  "prop": null,
+  "vfx": null,
   "budget": {
-    "triangle_warning": 100000,
-    "glb_size_warning_bytes": 12582912,
-    "material_warning": 16
+    "maxTriangles": 100000,
+    "maxMaterials": 16,
+    "maxGlbMb": 12,
+    "approvedOverBudget": false
   },
-  "viewer": {
-    "front": "-Y in Blender, tuned in Three.js",
-    "auto_spin": false,
-    "desktop_camera": [2.1, 1.25, 5.1],
-    "mobile_camera": [1.1, 1.05, 6.2],
-    "focus_target": [0, 0.0, 2.2]
-  },
-  "validation": {
-    "build": "npm run build",
-    "browser": "desktop and mobile",
-    "controls": ["mode", "reset", "focus", "spin", "zoom", "download", "snapshot"]
-  }
+  "viewerFraming": "Centered front-quarter viewer framing"
 }
 ```

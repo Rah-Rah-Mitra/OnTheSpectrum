@@ -15,6 +15,7 @@
     "asset:mixamo-exports": "python tools/asset-pipeline/run_blender_asset.py --script tools/asset-pipeline/regenerate_mixamo_exports.py",
     "asset:inspect": "node tools/asset-pipeline/inspect_glb.mjs public/models/on_the_spectrum-painter-chibi.glb",
     "asset:validate": "node tools/asset-pipeline/validate_glb_budget.mjs public/models/on_the_spectrum-painter-chibi.glb",
+    "qa:agents": "node tools/asset-pipeline/verify_agent_json.mjs",
     "qa:viewer": "node tools/asset-pipeline/verify_viewer.mjs",
     "qa:world": "node tools/asset-pipeline/verify_world_viewer.mjs"
   },
